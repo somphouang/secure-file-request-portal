@@ -1,6 +1,6 @@
-# Requestor-Uploader Assistant
+# Secure File Portal Assistant
 
-The Requestor-Uploader Assistant is a full-stack Node.js application that enables internal users to request sensitive documents from external users via a secure, masked, and trackable direct-to-cloud upload portal.
+The Secure File Portal Assistant is a full-stack Node.js application that enables internal users to request sensitive documents from external users via a secure, masked, and trackable direct-to-cloud upload portal.
 
 ## Architecture
 
@@ -64,27 +64,73 @@ Please refer to the enclosed walkthrough artifacts or run locally via:
 1. `cd backend && node server.js`
 2. `cd frontend && npm run dev`
 
+# Secure File Portal Verification Walkthrough
+
+The Secure File Portal Assistant application is now completely developed. It includes the React frontend, the Express backend, and mock services for Azure Storage, Azure Data Tables, GCNotify, and Assemblyline to allow for complete local verification without requiring cloud keys immediately.
+
+## Application Components Completed
+
+- **Frontend (`/frontend`)**: React application using Vite, stylized with modern glassmorphism Vanilla CSS.
+  - `RequestorDashboard.jsx`: Displays your active requests, their statuses, and allows creating a new upload link.
+  - `UploaderView.jsx`: The secure upload portal for external users. Generates short-lived Azure Blob SAS tokens in the background to handle direct and masked file uploads.
+- **Backend (`/backend`)**: Express API server.
+  - `server.js`: Web server and mocked authentication middleware.
+  - `azureBlobService.js`: Scoped SAS token generator.
+  - `azureTableService.js`: Lightweight NoSQL tracking for request stages and file lifecycle tracking.
+  - `gcNotifyService.js`: Wrapper for GCNotify emails (currently mocks to console limit API usage during testing).
+  - `assemblylineService.js`: Simulates a 10-second quarantine and scan, marking the file clean automatically.
+
+## How to Test and Verify
+
+Since Azure Table storage is configured to use the local Emulator by default, you will need the Azure Storage Emulator (Azurite) running if you don't provide actual `.env` keys.
+
+1. **Start the Backend**:
+```powershell
+cd backend
+node server.js
+```
+
+2. **Start the Frontend**:
+```powershell
+cd frontend
+npm run dev
+```
+
+3. **Verify the Flow**:
+   - Open your browser to `http://localhost:5173`.
+   - You will see the Requestor Dashboard. Click **`New Request`**.
+   - Input an email address and click **`Create & Send Email`**.
+   - In your *Backend terminal*, you will see a mock GCNotify log with the upload link.
+   - Copy that link, and open it in a new tab (this is the Uploader's view).
+   - Drop a PDF or XLSX file into the zone and hit **`Submit`**.
+   - The file will upload immediately to Blob Storage.
+   - Go back to the Requestor Dashboard and click **`Refresh`**. You will see it listed as `Scanning`.
+   - Wait 10 seconds, refresh again, and it will say `Clean` with a Download button!
+
+> [!TIP]
+> To hook up real Azure services and GCNotify, create a `.env` file in the `backend/` directory with:
+> - `AZURE_STORAGE_ACCOUNT_NAME`
+> - `AZURE_STORAGE_ACCOUNT_KEY`
+> - `GCNOTIFY_API_KEY`
+
+
+
 ## UI Demo
-![Frontend UI Demo](file:///C:/Users/somp/.gemini/antigravity/brain/8213afba-9ecc-4070-8023-5313511b1742/goc_accessible_ui_demo_1774314412863.webp)
 
-### Bilingual Support (English/French)
-![French Toggle Demo](file:///C:/Users/somp/.gemini/antigravity/brain/8213afba-9ecc-4070-8023-5313511b1742/bilingual_french_demo_1774315542233.webp)
+Bilingual Support (English/French)
 
-*Note: In the demo above, mock API failures may occur if the local Azurite Azure Storage Emulator is not running, but the UI is fully functional.*
+### Demo
 
+![Secure File Request Portal Login](img/image.png)
 
-## Demo
-
-![Secure File Request Portal Login](image.png)
-
-![Portail Sécurisé de Demande de Fichiers](image-1.png)
+![Portail Sécurisé de Demande de Fichiers](img/image-1.png)
 
 Federated User Login via Entra ID 
-![Requestor Dashboard](image-2.png)
+![Requestor Dashboard](img/image-2.png)
 
 Creating new Request
-![Request Details](image-3.png)
+![Request Details](img/image-3.png)
 
 French Language Support
-![Détails de la demande](image-4.png)
+![Détails de la demande](img/image-4.png)
 

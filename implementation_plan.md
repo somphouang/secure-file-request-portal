@@ -1,4 +1,4 @@
-# Requestor-Uploader Assistant Implementation Plan
+# Secure File Portal Assistant Implementation Plan
 
 This plan details the implementation of a full-stack Node.js application that allows internal users (requestors) to request files from external users (uploaders) securely.
 
