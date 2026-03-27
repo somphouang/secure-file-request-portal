@@ -1,9 +1,16 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-export const LanguageContext = createContext();
+type Language = 'en' | 'fr';
 
-export const LanguageProvider = ({ children }) => {
-  const [lang, setLang] = useState('en');
+interface LanguageContextType {
+  lang: Language;
+  setLang: (lang: Language) => void;
+}
+
+export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+
+export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [lang, setLang] = useState<Language>('en');
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -16,10 +23,14 @@ export const LanguageProvider = ({ children }) => {
   );
 };
 
-export const useLanguage = () => useContext(LanguageContext);
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) throw new Error("useLanguage must be used within a LanguageProvider");
+  return context;
+};
 
-export const t = (key, lang) => {
-  return dict[lang][key] || key;
+export const t = (key: string, lang: Language): string => {
+  return (dict[lang] as any)[key] || key;
 };
 
 const dict = {

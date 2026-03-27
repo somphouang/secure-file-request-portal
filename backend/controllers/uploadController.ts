@@ -1,16 +1,20 @@
-const bcrypt = require('bcryptjs');
-const azureTableService = require('../services/azureTableService');
-const azureBlobService = require('../services/azureBlobService');
-const gcNotifyService = require('../services/gcNotifyService');
-const assemblylineService = require('../services/assemblylineService');
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import * as azureTableService from '../services/azureTableService.js';
+import * as azureBlobService from '../services/azureBlobService.js';
+import * as gcNotifyService from '../services/gcNotifyService.js';
+import * as assemblylineService from '../services/assemblylineService.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-exports.createRequest = async (req, res) => {
+export const createRequest = async (req: Request, res: Response) => {
     try {
         const { uploaderEmail, requestedFileTypes, expirationDays, secret } = req.body;
-        const requestorEmail = req.user?.preferred_username || req.body.requestorEmail || 'admin@example.com';
+        let requestorEmail = req.user?.preferred_username || req.body.requestorEmail || 'admin@example.com';
         
+        // Remove characters forbidden in Azure Table keys: / \ # ? 
+        requestorEmail = requestorEmail.replace(/[\/\\#\?]/g, '_');
+
         if (!uploaderEmail) {
             return res.status(400).json({ error: 'uploaderEmail required' });
         }
@@ -25,7 +29,7 @@ exports.createRequest = async (req, res) => {
             uploaderEmail, 
             requestedFileTypes || 'pdf,xlsx',
             secretHash,
-            parseInt(expirationDays, 10) || 7
+            parseInt(expirationDays as string, 10) || 7
         );
         
         const uploadLink = `${FRONTEND_URL}/upload/${entity.rowKey}`;
@@ -38,18 +42,18 @@ exports.createRequest = async (req, res) => {
             token: entity.rowKey,
             request: entity
         });
-    } catch (error) {
-        console.error('Error creating request:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        console.error('Error creating request:', error.message, error.stack);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 };
 
-exports.getRequestInfo = async (req, res) => {
+export const getRequestInfo = async (req: Request, res: Response) => {
     try {
-        const { token } = req.params;
+        const token = req.params.token as string;
         const request = await azureTableService.getRequestByTokenOnly(token);
         
-        if (!request || new Date(request.expiresAt) < new Date()) {
+        if (!request || (request.expiresAt && new Date(request.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Upload request not found or expired.' });
         }
 
@@ -64,13 +68,13 @@ exports.getRequestInfo = async (req, res) => {
     }
 };
 
-exports.validateSecret = async (req, res) => {
+export const validateSecret = async (req: Request, res: Response) => {
     try {
-        const { token } = req.params;
+        const token = req.params.token as string;
         const { secret } = req.body;
         const request = await azureTableService.getRequestByTokenOnly(token);
         
-        if (!request || new Date(request.expiresAt) < new Date()) {
+        if (!request || (request.expiresAt && new Date(request.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Not found or expired' });
         }
         
@@ -86,14 +90,14 @@ exports.validateSecret = async (req, res) => {
     }
 };
 
-exports.generateUploadSas = async (req, res) => {
+export const generateUploadSas = async (req: Request, res: Response) => {
     try {
-        const { token } = req.params;
+        const token = req.params.token as string;
         const { filename, secret } = req.body;
 
         const request = await azureTableService.getRequestByTokenOnly(token);
         
-        if (!request || new Date(request.expiresAt) < new Date()) {
+        if (!request || (request.expiresAt && new Date(request.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Not found or expired' });
         }
         if (request.status !== 'Pending') {
@@ -107,7 +111,7 @@ exports.generateUploadSas = async (req, res) => {
             if (!isValid) return res.status(401).json({ error: 'Invalid secret' });
         }
 
-        const ext = filename ? filename.split('.').pop() : 'bin';
+        const ext = filename ? (filename as string).split('.').pop() : 'bin';
         const blobName = `${token}-${Date.now()}.${ext}`;
 
         const sasInfo = azureBlobService.generateUploadSasToken(blobName);
@@ -117,21 +121,21 @@ exports.generateUploadSas = async (req, res) => {
     }
 };
 
-exports.confirmUpload = async (req, res) => {
+export const confirmUpload = async (req: Request, res: Response) => {
     try {
-        const { token } = req.params;
+        const token = req.params.token as string;
         const { blobName } = req.body;
 
         const request = await azureTableService.getRequestByTokenOnly(token);
         if (!request) return res.status(404).json({ error: 'Not found' });
 
-        await azureTableService.updateRequestStatus(request.partitionKey, token, {
+        await azureTableService.updateRequestStatus(request.partitionKey!, token, {
             status: 'Uploaded',
             blobUri: blobName
         });
 
         // Trigger Assemblyline scan
-        assemblylineService.scanFile(request.partitionKey, token, blobName);
+        assemblylineService.scanFile(request.partitionKey!, token, blobName);
 
         res.json({ message: 'Upload confirmed. Processing file.', status: 'Uploaded' });
     } catch (error) {
@@ -139,9 +143,11 @@ exports.confirmUpload = async (req, res) => {
     }
 };
 
-exports.listRequestorUploads = async (req, res) => {
+export const listRequestorUploads = async (req: Request, res: Response) => {
     try {
-        const requestorEmail = req.user?.preferred_username || req.query.email || 'admin@example.com';
+        let requestorEmail = req.user?.preferred_username || (req.query.email as string) || 'admin@example.com';
+        requestorEmail = requestorEmail.replace(/[\/\\#\?]/g, '_');
+        
         const requests = await azureTableService.getRequestsByRequestor(requestorEmail);
         res.json(requests);
     } catch (error) {
@@ -149,17 +155,18 @@ exports.listRequestorUploads = async (req, res) => {
     }
 };
 
-exports.generateDownloadSas = async (req, res) => {
+export const generateDownloadSas = async (req: Request, res: Response) => {
     try {
-        const { token } = req.params;
-        const requestorEmail = req.user?.preferred_username || req.query.email || 'admin@example.com';
+        const token = req.params.token as string;
+        let requestorEmail = req.user?.preferred_username || (req.query.email as string) || 'admin@example.com';
+        requestorEmail = requestorEmail.replace(/[\/\\#\?]/g, '_');
 
         const request = await azureTableService.getUploadRequest(requestorEmail, token);
         
         if (!request) return res.status(404).json({ error: 'Not found or not authorized' });
         if (request.status !== 'Clean') return res.status(403).json({ error: `File not clean. Status is ${request.status}` });
 
-        const sasUrl = azureBlobService.generateDownloadSasToken(request.blobUri);
+        const sasUrl = azureBlobService.generateDownloadSasToken(request.blobUri!);
         res.json({ url: sasUrl });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });

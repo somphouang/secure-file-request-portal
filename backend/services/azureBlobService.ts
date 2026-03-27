@@ -1,25 +1,35 @@
-const { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
+import { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } from '@azure/storage-blob';
+
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || 'UseDevelopmentStorage=true';
+const containerName = process.env.AZURE_BLOB_CONTAINER_NAME || 'uploads';
 
 const account = process.env.AZURE_STORAGE_ACCOUNT_NAME || 'devstoreaccount1';
 const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY || 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==';
-const containerName = process.env.AZURE_BLOB_CONTAINER_NAME || 'uploads';
-
-const blobUrl = process.env.AZURE_BLOB_URL || `http://127.0.0.1:10000/${account}`;
-
 const sharedKeyCredential = new StorageSharedKeyCredential(account, accountKey);
-const blobServiceClient = new BlobServiceClient(blobUrl, sharedKeyCredential);
+
+const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString, {
+    retryOptions: { maxTries: 3 },
+    // Use an older API version for Azurite compatibility
+    // @ts-ignore
+    serviceVersion: '2023-11-03'
+});
 const containerClient = blobServiceClient.getContainerClient(containerName);
 
-async function initBlob() {
+export async function initBlob(): Promise<void> {
     try {
         await containerClient.createIfNotExists();
         console.log(`Blob container ${containerName} created or already exists.`);
-    } catch (error) {
-        console.error('Error creating blob container:', error);
+    } catch (err: any) {
+        if (err.message && err.message.includes('not supported by Azurite')) {
+            console.warn(`Warning: Azurite API version error ignored during local dev init for container ${containerName}. Ensure you ran Azurite with --skipApiVersionCheck`);
+        } else {
+            console.error(`Error creating blob container: ${err.message}`, err);
+            throw err;
+        }
     }
 }
 
-function generateUploadSasToken(blobName) {
+export function generateUploadSasToken(blobName: string) {
     const expiresOn = new Date();
     expiresOn.setHours(expiresOn.getHours() + 1); // Valid for 1 hour
 
@@ -40,7 +50,7 @@ function generateUploadSasToken(blobName) {
     };
 }
 
-function generateDownloadSasToken(blobName) {
+export function generateDownloadSasToken(blobName: string) {
     const expiresOn = new Date();
     expiresOn.setHours(expiresOn.getHours() + 1); // Valid for 1 hour
 
@@ -56,9 +66,3 @@ function generateDownloadSasToken(blobName) {
     
     return `${containerClient.getBlockBlobClient(blobName).url}?${sasToken}`;
 }
-
-module.exports = {
-    initBlob,
-    generateUploadSasToken,
-    generateDownloadSasToken
-};

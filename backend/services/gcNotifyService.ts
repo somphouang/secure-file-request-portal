@@ -1,9 +1,9 @@
-const axios = require('axios');
+import axios from 'axios';
 
 const gcNotifyApiKey = process.env.GCNOTIFY_API_KEY || 'mock-api-key';
 const templateId = process.env.GCNOTIFY_TEMPLATE_ID || 'mock-template-id';
 
-async function sendUploadRequestEmail(uploaderEmail, requestorEmail, uploadLink) {
+export async function sendUploadRequestEmail(uploaderEmail: string, requestorEmail: string, uploadLink: string): Promise<any> {
     if (gcNotifyApiKey === 'mock-api-key') {
         console.log('----------------------------------------------------');
         console.log(`[MOCK EMAIL SENT VIA GCNOTIFY]`);
@@ -33,12 +33,8 @@ async function sendUploadRequestEmail(uploaderEmail, requestorEmail, uploadLink)
             }
         );
         return response.data;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error sending GCNotify email:', error.response?.data || error.message);
         throw error;
     }
 }
-
-module.exports = {
-    sendUploadRequestEmail
-};

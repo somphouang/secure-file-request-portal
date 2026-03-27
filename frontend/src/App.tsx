@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useMsal, AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { loginRequest } from './authConfig';
@@ -19,7 +18,7 @@ export default function App() {
     instance.logoutRedirect({ postLogoutRedirectUri: "/" }).catch(e => console.error(e));
   };
 
-  const toggleLang = (e) => {
+  const toggleLang = (e: React.MouseEvent) => {
     e.preventDefault();
     setLang(lang === 'en' ? 'fr' : 'en');
   };
@@ -77,7 +76,7 @@ export default function App() {
         </nav>
       </header>
 
-      <main className="container main-content" property="mainContentOfPage" typeof="WebPageElement">
+      <main className="container main-content">
         <Routes>
           <Route path="/" element={
             <>

@@ -61,8 +61,26 @@ graph TD
 
 ## Setup Instructions
 Please refer to the enclosed walkthrough artifacts or run locally via:
-1. `cd backend && node server.js`
-2. `cd frontend && npm run dev`
+
+### Azurite (Local Azure Storage Emulator)
+To test the file upload functionality locally, you need the Azure Storage Emulator running.
+You can run a Docker container for Azurite via Ubuntu WSL:
+
+1. Open Ubuntu WSL.
+2. Install docker engine with command:
+   ```bash
+   sudo curl -sSL https://get.docker.com | sh
+   ```
+3. Run the Azurite container:
+   ```bash
+   sudo docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite azurite --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+   ```
+
+### Running the Application
+1. **Backend**:
+   `cd backend && npm run build && npm start`
+2. **Frontend**:
+   `cd frontend && npm run dev`
 
 # Secure File Portal Verification Walkthrough
 
@@ -87,12 +105,15 @@ Since Azure Table storage is configured to use the local Emulator by default, yo
 1. **Start the Backend**:
 ```powershell
 cd backend
-node server.js
+npm install
+npm run build
+npm start
 ```
 
 2. **Start the Frontend**:
 ```powershell
 cd frontend
+npm install
 npm run dev
 ```
 
@@ -113,6 +134,20 @@ npm run dev
 > - `AZURE_STORAGE_ACCOUNT_KEY`
 > - `GCNOTIFY_API_KEY`
 
+### Verification
+
+Triggered an immediate mock upload with a sample `test.txt` via an API pipeline mimicking exactly what the React UI does, testing the full lifecycle:
+
+1. Generated a new request via `POST /api/requests`.
+2. Grabbed the upload link generated.
+3. Authenticated the Uploader page with the secret `passcode`.
+4. Acquired the one-time short-lived upload SAS token `(/api/public/requests/.../sas)`.
+5. Transferred `test.txt` explicitly into the uploads Blob container payload.
+6. Instructed the backend to trigger confirmation `(/confirm)`.
+7. Refreshed the dashboard list `(GET /requests)`: Validated that the status successfully flipped to `Scanning`.
+8. After 10 simulated seconds of the Assemblyline pipeline timeout, I refreshed the list again, and it successfully transitioned to Clean!
+
+"Refresh list" button logic natively leverages this `fetchRequests` mapped call, so clicking it will completely and accurately update the screen statuses without needing to reload the entire Web UI.
 
 
 ## UI Demo
@@ -134,3 +169,22 @@ Creating new Request
 French Language Support
 ![Détails de la demande](img/image-4.png)
 
+
+
+Test send request and view status
+![alt text](img/viewstatus-en.png)
+![alt text](img/viewstatus-multi-en.png)
+
+
+French Language Support status
+![alt text](img/viewstatus-fr.png)
+
+
+Upload document
+![alt text](img/documentupload-en.png)
+
+Document has been uploaded
+![alt text](img/documentuploadfulfilled-en.png)
+
+French Language Support Document has been uploaded
+![alt text](img/documentuploadfulfilled-fr.png)

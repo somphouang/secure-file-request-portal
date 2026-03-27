@@ -1,9 +1,9 @@
-const { updateRequestStatus } = require('./azureTableService');
+import { updateRequestStatus } from './azureTableService.js';
 
 const assemblylineUrl = process.env.ASSEMBLYLINE_URL || 'mock';
 
 // Simulates submitting a file to Assemblyline and polling for results
-async function scanFile(requestorEmail, token, blobName) {
+export async function scanFile(requestorEmail: string, token: string, blobName: string): Promise<boolean> {
     if (assemblylineUrl === 'mock') {
         console.log(`[ASSEMBLYLINE] Mock scanning started for ${blobName} (token: ${token})`);
         
@@ -29,7 +29,3 @@ async function scanFile(requestorEmail, token, blobName) {
     // 3. Update Azure Table Storage status
     throw new Error("Real Assemblyline integration not yet fully implemented");
 }
-
-module.exports = {
-    scanFile
-};

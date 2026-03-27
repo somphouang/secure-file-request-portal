@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import axios from 'axios';
 import { Plus, Download, RefreshCw } from 'lucide-react';
 
@@ -6,6 +6,15 @@ import { useMsal } from "@azure/msal-react";
 import { useLanguage, t } from './i18n';
 
 const API_BASE = 'http://localhost:3001/api';
+
+interface UploadRequest {
+  partitionKey: string;
+  rowKey: string;
+  uploaderEmail: string;
+  requestedFileTypes: string;
+  status: string;
+  expiresAt: string;
+}
 
 export default function RequestorDashboard() {
   const { instance, accounts } = useMsal();
@@ -26,7 +35,7 @@ export default function RequestorDashboard() {
     return {};
   };
 
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<UploadRequest[]>([]);
   const [showConfig, setShowConfig] = useState(false);
   const [newRequest, setNewRequest] = useState({ 
     uploaderEmail: '', 
@@ -43,14 +52,14 @@ export default function RequestorDashboard() {
   const fetchRequests = async () => {
     try {
       const config = await getAxiosConfig();
-      const { data } = await axios.get(`${API_BASE}/requests`, config);
+      const { data } = await axios.get<UploadRequest[]>(`${API_BASE}/requests`, config);
       setRequests(data);
     } catch (error) {
       console.error('Failed to fetch requests', error);
     }
   };
 
-  const handleCreate = async (e) => {
+  const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -67,17 +76,17 @@ export default function RequestorDashboard() {
     }
   };
 
-  const handleDownload = async (token) => {
+  const handleDownload = async (token: string) => {
     try {
       const config = await getAxiosConfig();
-      const { data } = await axios.get(`${API_BASE}/requests/${token}/download`, config);
+      const { data } = await axios.get<{ url: string }>(`${API_BASE}/requests/${token}/download`, config);
       window.open(data.url, '_blank');
     } catch (error) {
       alert('Failed to get download link or file is not clean.');
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch(status) {
       case 'Pending': return <span className="badge badge-warning">{status}</span>;
       case 'Uploaded': return <span className="badge badge-info">{status}</span>;
@@ -142,13 +151,12 @@ export default function RequestorDashboard() {
               </select>
             </div>
             <div className="form-group">
-              <label htmlFor="secret">{t('secret', lang)} <span className="required">{t('required', lang)}</span></label>
+              <label htmlFor="secret">{t('secret', lang)}</label>
               <span className="hint-text">{t('hint_secret', lang)}</span>
               <input 
                 type="text" 
                 className="form-control"
                 id="secret"
-                required
                 value={newRequest.secret}
                 onChange={e => setNewRequest({...newRequest, secret: e.target.value})}
               />

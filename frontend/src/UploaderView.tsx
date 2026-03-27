@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { UploadCloud } from 'lucide-react';
@@ -6,20 +6,27 @@ import { useLanguage, t } from './i18n';
 
 const API_BASE = 'http://localhost:3001/api/public';
 
+interface RequestInfo {
+  uploaderEmail: string;
+  requestedFileTypes: string;
+  status: string;
+  requiresSecret: boolean;
+}
+
 export default function UploaderView() {
   const { lang } = useLanguage();
-  const { token } = useParams();
-  const [requestInfo, setRequestInfo] = useState(null);
-  const [file, setFile] = useState(null);
+  const { token } = useParams<{ token: string }>();
+  const [requestInfo, setRequestInfo] = useState<RequestInfo | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   
-  const [status, setStatus] = useState('loading'); // loading, ready (auth needed), authenticated, uploading, success, error
+  const [status, setStatus] = useState('loading'); // loading, ready (auth needed), authenticated, uploading, success, error, already_uploaded
   const [secret, setSecret] = useState('');
   const [secretError, setSecretError] = useState('');
   
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/requests/${token}`)
+    axios.get<RequestInfo>(`${API_BASE}/requests/${token}`)
       .then(res => {
         if (res.data.status !== 'Pending') {
           setStatus('already_uploaded');
@@ -28,12 +35,12 @@ export default function UploaderView() {
           setStatus(res.data.requiresSecret ? 'ready' : 'authenticated');
         }
       })
-      .catch((err) => {
+      .catch(() => {
           setStatus('error');
       });
   }, [token]);
 
-  const handleAuthenticate = async (e) => {
+  const handleAuthenticate = async (e: FormEvent) => {
     e.preventDefault();
     setSecretError('');
     try {
@@ -44,7 +51,7 @@ export default function UploaderView() {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
@@ -55,7 +62,7 @@ export default function UploaderView() {
     setStatus('uploading');
 
     try {
-      const sasRes = await axios.post(`${API_BASE}/requests/${token}/sas`, { filename: file.name, secret });
+      const sasRes = await axios.post<{ url: string, blobName: string }>(`${API_BASE}/requests/${token}/sas`, { filename: file.name, secret });
       const { url, blobName } = sasRes.data;
 
       await axios.put(url, file, {
@@ -106,20 +113,20 @@ export default function UploaderView() {
         </fieldset>
       )}
 
-      {(status === 'authenticated' || status === 'uploading') && (
+      {(status === 'authenticated' || status === 'uploading') && requestInfo && (
         <fieldset>
           <legend>{t('upload_doc', lang)}</legend>
           <p><strong>{t('allowed_file_types', lang)}</strong> {requestInfo.requestedFileTypes}</p>
           
           <div 
             className="dropzone"
-            onClick={() => fileInputRef.current.click()}
+            onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }}
             role="button"
-            tabIndex="0"
+            tabIndex={0}
             aria-label={t('click_drag', lang)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current.click(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
           >
             <UploadCloud size={48} className="dropzone-icon" aria-hidden="true" />
             {file ? (
@@ -134,7 +141,7 @@ export default function UploaderView() {
               onChange={handleFileChange}
               accept={requestInfo.requestedFileTypes.split(',').map(ext => `.${ext.trim()}`).join(',')} 
               aria-hidden="true"
-              tabIndex="-1"
+              tabIndex={-1}
             />
           </div>
 
