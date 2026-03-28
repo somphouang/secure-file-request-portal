@@ -35,7 +35,7 @@ export const createRequest = async (req: Request, res: Response) => {
         const uploadLink = `${FRONTEND_URL}/upload/${entity.rowKey}`;
         
         // Send email
-        await gcNotifyService.sendUploadRequestEmail(uploaderEmail, requestorEmail, uploadLink);
+        await gcNotifyService.sendUploadRequestEmail(uploaderEmail, requestorEmail, uploadLink, secret);
 
         res.status(201).json({
             message: 'Upload request created.',
@@ -61,7 +61,8 @@ export const getRequestInfo = async (req: Request, res: Response) => {
             uploaderEmail: request.uploaderEmail,
             requestedFileTypes: request.requestedFileTypes,
             status: request.status,
-            requiresSecret: !!request.secretHash
+            requiresSecret: !!request.secretHash,
+            blobUri: request.blobUri || null
         });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -100,10 +101,6 @@ export const generateUploadSas = async (req: Request, res: Response) => {
         if (!request || (request.expiresAt && new Date(request.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Not found or expired' });
         }
-        if (request.status !== 'Pending') {
-            return res.status(400).json({ error: `Request status is ${request.status}` });
-        }
-
         // Validate secret
         if (request.secretHash) {
             if (!secret) return res.status(401).json({ error: 'Secret required' });
@@ -131,7 +128,7 @@ export const confirmUpload = async (req: Request, res: Response) => {
 
         await azureTableService.updateRequestStatus(request.partitionKey!, token, {
             status: 'Uploaded',
-            blobUri: blobName
+            blobUri: request.blobUri ? `${request.blobUri},${blobName}` : blobName
         });
 
         // Trigger Assemblyline scan
@@ -158,15 +155,18 @@ export const listRequestorUploads = async (req: Request, res: Response) => {
 export const generateDownloadSas = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
+        const filename = req.query.filename as string;
         let requestorEmail = req.user?.preferred_username || (req.query.email as string) || 'admin@example.com';
         requestorEmail = requestorEmail.replace(/[\/\\#\?]/g, '_');
 
         const request = await azureTableService.getUploadRequest(requestorEmail, token);
         
         if (!request) return res.status(404).json({ error: 'Not found or not authorized' });
-        if (request.status !== 'Clean') return res.status(403).json({ error: `File not clean. Status is ${request.status}` });
+        // Instead of strict Clean check, we check if there are files
+        if (!request.blobUri) return res.status(404).json({ error: `No files uploaded.` });
 
-        const sasUrl = azureBlobService.generateDownloadSasToken(request.blobUri!);
+        const targetBlob = filename || request.blobUri.split(',')[0];
+        const sasUrl = azureBlobService.generateDownloadSasToken(targetBlob);
         res.json({ url: sasUrl });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });

@@ -11,6 +11,7 @@ interface RequestInfo {
   requestedFileTypes: string;
   status: string;
   requiresSecret: boolean;
+  blobUri: string | null;
 }
 
 export default function UploaderView() {
@@ -28,12 +29,9 @@ export default function UploaderView() {
   useEffect(() => {
     axios.get<RequestInfo>(`${API_BASE}/requests/${token}`)
       .then(res => {
-        if (res.data.status !== 'Pending') {
-          setStatus('already_uploaded');
-        } else {
-          setRequestInfo(res.data);
-          setStatus(res.data.requiresSecret ? 'ready' : 'authenticated');
-        }
+        // ALWAYS allow them to see the form even if already uploaded, per requirements
+        setRequestInfo(res.data);
+        setStatus(res.data.requiresSecret ? 'ready' : 'authenticated');
       })
       .catch(() => {
           setStatus('error');
@@ -74,7 +72,11 @@ export default function UploaderView() {
 
       await axios.post(`${API_BASE}/requests/${token}/confirm`, { blobName });
 
-      setStatus('success');
+      // Refresh data to show currently uploaded files and allow more uploads
+      const res = await axios.get<RequestInfo>(`${API_BASE}/requests/${token}`);
+      setRequestInfo(res.data);
+      setFile(null);
+      setStatus('authenticated');
     } catch (error) {
       console.error('Upload error', error);
       setStatus('error');
@@ -116,6 +118,18 @@ export default function UploaderView() {
       {(status === 'authenticated' || status === 'uploading') && requestInfo && (
         <fieldset>
           <legend>{t('upload_doc', lang)}</legend>
+          
+          {requestInfo.blobUri && (
+            <div className="alert alert-info" style={{ marginBottom: '1.5em' }}>
+              <strong>Files successfully uploaded for this request:</strong>
+              <ul style={{ margin: '0.5em 0 0', paddingLeft: '1.5em' }}>
+                {requestInfo.blobUri.split(',').map((blob, idx) => (
+                  <li key={idx}>{blob}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <p><strong>{t('allowed_file_types', lang)}</strong> {requestInfo.requestedFileTypes}</p>
           
           <div 

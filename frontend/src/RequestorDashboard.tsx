@@ -14,6 +14,7 @@ interface UploadRequest {
   requestedFileTypes: string;
   status: string;
   expiresAt: string;
+  blobUri?: string;
 }
 
 export default function RequestorDashboard() {
@@ -76,10 +77,10 @@ export default function RequestorDashboard() {
     }
   };
 
-  const handleDownload = async (token: string) => {
+  const handleDownload = async (token: string, blobName?: string) => {
     try {
       const config = await getAxiosConfig();
-      const { data } = await axios.get<{ url: string }>(`${API_BASE}/requests/${token}/download`, config);
+      const { data } = await axios.get<{ url: string }>(`${API_BASE}/requests/${token}/download${blobName ? `?filename=${encodeURIComponent(blobName)}` : ''}`, config);
       window.open(data.url, '_blank');
     } catch (error) {
       alert('Failed to get download link or file is not clean.');
@@ -201,10 +202,14 @@ export default function RequestorDashboard() {
                 <td>{getStatusBadge(req.status)}</td>
                 <td>{new Date(req.expiresAt).toLocaleDateString()}</td>
                 <td>
-                  {req.status === 'Clean' ? (
-                    <button className="btn btn-success" onClick={() => handleDownload(req.rowKey)}>
-                      <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> {t('download', lang)}
-                    </button>
+                  {req.blobUri ? (
+                    <div>
+                      {req.blobUri.split(',').map((blobName: string, idx: number) => (
+                        <button key={idx} className="btn btn-success" style={{display: 'block', marginBottom: '5px'}} onClick={() => handleDownload(req.rowKey, blobName)}>
+                          <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> {t('download', lang)} {blobName}
+                        </button>
+                      ))}
+                    </div>
                   ) : (
                     <span>---</span>
                   )}

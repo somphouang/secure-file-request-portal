@@ -24,12 +24,34 @@ export async function initBlob(): Promise<void> {
             console.warn(`Warning: Azurite API version error ignored during local dev init for container ${containerName}. Ensure you ran Azurite with --skipApiVersionCheck`);
         } else {
             console.error(`Error creating blob container: ${err.message}`, err);
-            throw err;
+        }
+    }
+
+    try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        // Set CORS rules to allow the browser to PUT blobs directly
+        await blobServiceClient.setProperties({
+            cors: [{
+                allowedOrigins: frontendUrl,
+                allowedMethods: 'GET,PUT,POST,OPTIONS,HEAD',
+                allowedHeaders: '*',
+                exposedHeaders: '*',
+                maxAgeInSeconds: 3600
+            }]
+        });
+        console.log('CORS properties set for Blob Storage.');
+    } catch (err: any) {
+        if (err.message && err.message.includes('not supported by Azurite')) {
+            console.warn(`Warning: Azurite API version error ignored during CORS setup. Ensure you ran Azurite with --skipApiVersionCheck`);
+        } else {
+            console.error(`Error setting CORS: ${err.message}`, err);
         }
     }
 }
 
 export function generateUploadSasToken(blobName: string) {
+    const startsOn = new Date();
+    startsOn.setMinutes(startsOn.getMinutes() - 15); // Prevent clock skew
     const expiresOn = new Date();
     expiresOn.setHours(expiresOn.getHours() + 1); // Valid for 1 hour
 
@@ -37,7 +59,7 @@ export function generateUploadSasToken(blobName: string) {
         containerName,
         blobName,
         permissions: BlobSASPermissions.parse("cw"), // create, write
-        startsOn: new Date(),
+        startsOn: startsOn,
         expiresOn: expiresOn,
     };
 
@@ -51,6 +73,8 @@ export function generateUploadSasToken(blobName: string) {
 }
 
 export function generateDownloadSasToken(blobName: string) {
+    const startsOn = new Date();
+    startsOn.setMinutes(startsOn.getMinutes() - 15); // Prevent clock skew
     const expiresOn = new Date();
     expiresOn.setHours(expiresOn.getHours() + 1); // Valid for 1 hour
 
@@ -58,7 +82,7 @@ export function generateDownloadSasToken(blobName: string) {
         containerName,
         blobName,
         permissions: BlobSASPermissions.parse("r"), // read
-        startsOn: new Date(),
+        startsOn: startsOn,
         expiresOn: expiresOn,
     };
 
