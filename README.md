@@ -59,6 +59,45 @@ graph TD
 - **Masked Storage**: Uploaders never see the actual destination container. They are provided a short-lived (1-hour) Shared Access Signature (SAS) token permitting write-only execution to a specific generated blob name.
 - **Quarantine Pipeline**: All files are placed in an isolated blob path until scanned and explicitly marked as `Clean` by Assemblyline.
 
+## Environment Variables Configuration
+
+The application requires environment variables for both the backend and frontend to configure integrations with Azure, Entra ID (MSAL), GCNotify, and SMTP. Create a `.env` file in both the `backend/` and `frontend/` directories (you can use the `.env.dev` and `.env.example` files as templates).
+
+### Backend (`backend/.env`)
+
+| Key | Description | Expected Value |
+| --- | --- | --- |
+| `PORT` | The port the Express API runs on. | `3001` (default) |
+| `FRONTEND_URL` | Used for CORS and generating links back to the UI. | `http://localhost:5173` |
+| `AZURE_STORAGE_CONNECTION_STRING` | Connection string for Azure Storage. | `UseDevelopmentStorage=true` for local Azurite emulator. |
+| `AZURE_STORAGE_ACCOUNT_NAME` | The Azure storage account name. | Default is `devstoreaccount1` for Azurite. |
+| `AZURE_STORAGE_ACCOUNT_KEY` | The Azure storage account key. | Emulator key for Azurite, or production key. |
+| `AZURE_TABLE_NAME` | The Azure Table where requests are stored. | e.g., `UploadRequestsV2` |
+| `AZURE_BLOB_CONTAINER_NAME` | The blob container for uploaded files. | e.g., `uploads` |
+| `AZURE_TABLE_URL` | Direct URL to Table Storage service. | Emulator URL (local) or cloud URL (prod). |
+| `AZURE_BLOB_URL` | Direct URL to Blob Storage service. | Emulator URL (local) or cloud URL (prod). |
+| `GCNOTIFY_API_KEY` | Your GCNotify API Key for emails. | `mock-api-key` for dev, or real key for prod. |
+| `GCNOTIFY_TEMPLATE_ID` | Your GCNotify Template ID format. | `mock-template-id` for dev, or real ID. |
+| `ASSEMBLYLINE_URL` | The URL for Assemblyline malware scanning service. | e.g., `mock` for local development. |
+| `MSAL_CLIENT_ID` | Entra ID (Azure AD) Client ID for backend token validation. | Your Entra ID application client ID. |
+| `MSAL_TENANT_ID` | Entra ID Tenant ID. | Your Entra ID tenant ID. |
+| `MSAL_REDIRECT_URI` | Redirect URI matching your Entra ID app setup. | e.g., `http://localhost:3001/auth/redirect` |
+| `MAILER_ENABLED` | Flag to enable SMTP email delivery. | `true` or `false` |
+| `MAILER_SMTP_ADDR` | SMTP server address. | e.g., `email-smtp.ca-central-1.amazonaws.com` |
+| `MAILER_SMTP_PORT` | SMTP port. | e.g., `587` |
+| `MAILER_FROM` | Sender email address for the notification emails. | e.g., `noreply@your-domain.com` |
+| `MAILER_USER` | SMTP authentication user username. | Your SMTP username. |
+| `MAILER_PASSWD` | SMTP authentication user password. | Your SMTP password. |
+
+### Frontend (`frontend/.env`)
+
+| Key | Description | Expected Value |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | The URL where the frontend expects the backend API. | `http://localhost:3001/api` |
+| `VITE_MSAL_CLIENT_ID` | Entra ID Client ID for frontend MSAL authentication. | Your Entra ID application client ID. |
+| `VITE_MSAL_TENANT_ID` | Entra ID Tenant ID. | Your Entra ID tenant ID. |
+| `VITE_MSAL_REDIRECT_URI` | Redirect URI after successful frontend login. | e.g., `http://localhost:5173/` |
+
 ## Setup Instructions
 Please refer to the enclosed walkthrough artifacts or run locally via:
 
