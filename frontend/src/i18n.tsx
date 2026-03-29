@@ -95,7 +95,8 @@ const dict = {
     selected: "Selected:",
     click_drag: "Click to browse or drag & drop a file here.",
     encrypting: "Encrypting and Transmitting...",
-    submit_doc: "Submit Document"
+    submit_doc: "Submit Document",
+    allow_multiple: "Allow Multiple Files"
   },
   fr: {
     goc: "Gouvernement du Canada",
@@ -158,6 +159,7 @@ const dict = {
     selected: "Sélectionné:",
     click_drag: "Cliquez pour parcourir ou glissez-déposez un fichier ici.",
     encrypting: "Chiffrement et Transmission...",
-    submit_doc: "Soumettre le Document"
+    submit_doc: "Soumettre le Document",
+    allow_multiple: "Autoriser Multiples Fichiers"
   }
 };

@@ -9,7 +9,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 export const createRequest = async (req: Request, res: Response) => {
     try {
-        const { uploaderEmail, requestedFileTypes, expirationDays, secret } = req.body;
+        const { uploaderEmail, requestedFileTypes, expirationDays, secret, allowMultiple } = req.body;
         let requestorEmail = req.user?.preferred_username || req.body.requestorEmail || 'admin@example.com';
         
         // Remove characters forbidden in Azure Table keys: / \ # ? 
@@ -29,13 +29,14 @@ export const createRequest = async (req: Request, res: Response) => {
             uploaderEmail, 
             requestedFileTypes || 'pdf,xlsx',
             secretHash,
-            parseInt(expirationDays as string, 10) || 7
+            parseInt(expirationDays as string, 10) || 7,
+            allowMultiple === true
         );
         
         const uploadLink = `${FRONTEND_URL}/upload/${entity.rowKey}`;
         
         // Send email
-        await gcNotifyService.sendUploadRequestEmail(uploaderEmail, requestorEmail, uploadLink, secret);
+        await gcNotifyService.sendUploadRequestEmail(uploaderEmail, requestorEmail, uploadLink, secret, allowMultiple === true);
 
         res.status(201).json({
             message: 'Upload request created.',
@@ -62,7 +63,9 @@ export const getRequestInfo = async (req: Request, res: Response) => {
             requestedFileTypes: request.requestedFileTypes,
             status: request.status,
             requiresSecret: !!request.secretHash,
-            blobUri: request.blobUri || null
+            blobUri: request.blobUri || null,
+            allowMultiple: request.allowMultiple || false,
+            isClosed: request.isClosed || false
         });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -135,6 +138,23 @@ export const confirmUpload = async (req: Request, res: Response) => {
         assemblylineService.scanFile(request.partitionKey!, token, blobName);
 
         res.json({ message: 'Upload confirmed. Processing file.', status: 'Uploaded' });
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+export const closeRequest = async (req: Request, res: Response) => {
+    try {
+        const token = req.params.token as string;
+        const request = await azureTableService.getRequestByTokenOnly(token);
+        
+        if (!request) return res.status(404).json({ error: 'Not found' });
+        
+        await azureTableService.updateRequestStatus(request.partitionKey!, token, {
+            isClosed: true
+        });
+
+        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }

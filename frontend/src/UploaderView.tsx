@@ -11,7 +11,9 @@ interface RequestInfo {
   requestedFileTypes: string;
   status: string;
   requiresSecret: boolean;
-  blobUri: string | null;
+  blobUri?: string | null;
+  allowMultiple?: boolean;
+  isClosed?: boolean;
 }
 
 export default function UploaderView() {
@@ -31,7 +33,11 @@ export default function UploaderView() {
       .then(res => {
         // ALWAYS allow them to see the form even if already uploaded, per requirements
         setRequestInfo(res.data);
-        setStatus(res.data.requiresSecret ? 'ready' : 'authenticated');
+        if (res.data.isClosed || (res.data.blobUri && !res.data.allowMultiple)) {
+          setStatus('already_uploaded');
+        } else {
+          setStatus(res.data.requiresSecret ? 'ready' : 'authenticated');
+        }
       })
       .catch(() => {
           setStatus('error');
@@ -43,7 +49,12 @@ export default function UploaderView() {
     setSecretError('');
     try {
       await axios.post(`${API_BASE}/requests/${token}/validate-secret`, { secret });
-      setStatus('authenticated');
+      // If it's already closed or completed, validating should show already_uploaded
+      if (requestInfo?.isClosed || (requestInfo?.blobUri && !requestInfo?.allowMultiple)) {
+        setStatus('already_uploaded');
+      } else {
+        setStatus('authenticated');
+      }
     } catch (err) {
       setSecretError(t('invalid_link_desc', lang));
     }
@@ -76,9 +87,28 @@ export default function UploaderView() {
       const res = await axios.get<RequestInfo>(`${API_BASE}/requests/${token}`);
       setRequestInfo(res.data);
       setFile(null);
-      setStatus('authenticated');
+      
+      // If allowMultiple is not enabled, mark as closed immediately after 1 upload.
+      if (!res.data.allowMultiple) {
+          setStatus('success'); // or already_uploaded
+      } else {
+          setStatus('authenticated');
+      }
     } catch (error) {
       console.error('Upload error', error);
+      setStatus('error');
+    }
+  };
+
+  const handleDone = async () => {
+    try {
+      if (!window.confirm("Are you sure you want to complete your upload? This request will be closed and no further files can be added.")) {
+        return;
+      }
+      await axios.post(`${API_BASE}/requests/${token}/complete`);
+      setStatus('already_uploaded');
+    } catch (error) {
+      console.error('Complete error', error);
       setStatus('error');
     }
   };
@@ -118,19 +148,28 @@ export default function UploaderView() {
       {(status === 'authenticated' || status === 'uploading') && requestInfo && (
         <fieldset>
           <legend>{t('upload_doc', lang)}</legend>
+
+          {requestInfo.blobUri && !requestInfo.allowMultiple && (
+            <div className="alert alert-success" style={{ marginBottom: '1.5em' }}>
+              <strong>Upload complete! Multiple file uploads are not permitted for this request.</strong>
+            </div>
+          )}
           
-          {requestInfo.blobUri && (
+          {requestInfo.blobUri && requestInfo.allowMultiple && (
             <div className="alert alert-info" style={{ marginBottom: '1.5em' }}>
               <strong>Files successfully uploaded for this request:</strong>
               <ul style={{ margin: '0.5em 0 0', paddingLeft: '1.5em' }}>
-                {requestInfo.blobUri.split(',').map((blob, idx) => (
+                {requestInfo.blobUri.split(',').map((blob: string, idx: number) => (
                   <li key={idx}>{blob}</li>
                 ))}
               </ul>
+              <p style={{ marginTop: '0.5em' }}>You are permitted to upload additional files.</p>
             </div>
           )}
 
-          <p><strong>{t('allowed_file_types', lang)}</strong> {requestInfo.requestedFileTypes}</p>
+          {(!requestInfo.blobUri || requestInfo.allowMultiple) && (
+            <>
+              <p><strong>{t('allowed_file_types', lang)}</strong> {requestInfo.requestedFileTypes}</p>
           
           <div 
             className="dropzone"
@@ -159,7 +198,7 @@ export default function UploaderView() {
             />
           </div>
 
-          <div style={{ marginTop: '2em' }}>
+          <div style={{ marginTop: '2em', display: 'flex', gap: '10px' }}>
             <button 
               className="btn btn-primary" 
               disabled={!file || status === 'uploading'}
@@ -167,7 +206,18 @@ export default function UploaderView() {
             >
               {status === 'uploading' ? t('encrypting', lang) : t('submit_doc', lang)}
             </button>
+            {requestInfo.allowMultiple && requestInfo.blobUri && (
+              <button 
+                type="button" 
+                className="btn btn-default" 
+                onClick={handleDone}
+              >
+                Complete Multiple Uploads
+              </button>
+            )}
           </div>
+          </>
+          )}
         </fieldset>
       )}
     </div>

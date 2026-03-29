@@ -54,6 +54,7 @@ app.get('/api/public/requests/:token', uploadController.getRequestInfo);
 app.post('/api/public/requests/:token/validate-secret', uploadController.validateSecret);
 app.post('/api/public/requests/:token/sas', uploadController.generateUploadSas);
 app.post('/api/public/requests/:token/confirm', uploadController.confirmUpload);
+app.post('/api/public/requests/:token/complete', uploadController.closeRequest);
 
 const port = process.env.PORT || 3001;
 

@@ -1,0 +1,47 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  node_version: '20.x' 
+
+stages:
+- stage: BuildAndTest
+  jobs:
+  - job: BackendTest
+    displayName: 'Backend Setup and Test'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(node_version)'
+      displayName: 'Install Node.js'
+
+    - script: |
+        cd backend
+        npm install
+      displayName: 'Install Backend Dependencies'
+
+    - script: |
+        cd backend
+        npm run test
+      displayName: 'Run Backend Tests'
+
+  - job: FrontendTest
+    displayName: 'Frontend Setup and Test'
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(node_version)'
+      displayName: 'Install Node.js'
+
+    - script: |
+        cd frontend
+        npm install
+      displayName: 'Install Frontend Dependencies'
+
+    - script: |
+        cd frontend
+        npm run test
+      displayName: 'Run Frontend Tests'

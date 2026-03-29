@@ -12,10 +12,37 @@ const mailerFrom = process.env.MAILER_FROM || '';
 const mailerUser = process.env.MAILER_USER || '';
 const mailerPasswd = process.env.MAILER_PASSWD || '';
 
-export async function sendUploadRequestEmail(uploaderEmail: string, requestorEmail: string, uploadLink: string, passcode?: string): Promise<any> {
+export async function sendUploadRequestEmail(uploaderEmail: string, requestorEmail: string, uploadLink: string, passcode?: string, allowMultiple?: boolean): Promise<any> {
+    const subject = `Secure File Request from ${requestorEmail}`;
+    let text = `You have been asked to upload a file by\n${requestorEmail}\n\nPlease use the following link to upload:\n${uploadLink}\n`;
+    let html = `<p>You have been asked to upload a file by<br><strong>${requestorEmail}</strong></p>
+                <p>Please use the following link to upload:<br><a href="${uploadLink}">${uploadLink}</a></p>`;
+
+    if (passcode) {
+        text += `\nUse the passcode for uploading:\n${passcode}\n`;
+        html += `<p>Use the passcode for uploading:<br><strong>${passcode}</strong></p>`;
+    }
+
+    // French implementation
+    text += `\n---\n\nVous avez été invité à télécharger un fichier par\n${requestorEmail}\n\nVeuillez utiliser le lien suivant pour le téléchargement :\n${uploadLink}\n`;
+    html += `<hr><p>Vous avez été invité à télécharger un fichier par<br><strong>${requestorEmail}</strong></p>
+             <p>Veuillez utiliser le lien suivant pour le téléchargement :<br><a href="${uploadLink}">${uploadLink}</a></p>`;
+
+    if (passcode) {
+        text += `\nUtilisez le code d'accès pour le téléchargement :\n${passcode}\n`;
+        html += `<p>Utilisez le code d'accès pour le téléchargement :<br><strong>${passcode}</strong></p>`;
+    }
+
+    if (allowMultiple) {
+        text += `\nNote: You are allowed to upload multiple files for this request.\n`;
+        text += `Remarque : Vous êtes autorisé à télécharger plusieurs fichiers pour cette demande.\n`;
+        html += `<p><em>Note: You are allowed to upload multiple files for this request.</em></p>`;
+        html += `<p><em>Remarque : Vous êtes autorisé à télécharger plusieurs fichiers pour cette demande.</em></p>`;
+    }
+
     if (mailerEnabled) {
-        // Explicitly send to somp@outlook.com for testing as requested
-        const testEmail = 'somp@outlook.com';
+        // Send to the specified uploader email
+        const targetEmail = uploaderEmail;
 
         const transporter = nodemailer.createTransport({
             host: smtpAddr,
@@ -27,35 +54,15 @@ export async function sendUploadRequestEmail(uploaderEmail: string, requestorEma
             },
         });
 
-        const subject = `Secure File Request from ${requestorEmail}`;
-        let text = `You have been asked to upload a file by\n${requestorEmail}\n\nPlease use the following link to upload:\n${uploadLink}\n`;
-        let html = `<p>You have been asked to upload a file by<br><strong>${requestorEmail}</strong></p>
-                    <p>Please use the following link to upload:<br><a href="${uploadLink}">${uploadLink}</a></p>`;
-
-        if (passcode) {
-            text += `\nUse the passcode for uploading:\n${passcode}\n`;
-            html += `<p>Use the passcode for uploading:<br><strong>${passcode}</strong></p>`;
-        }
-
-        // French implementation
-        text += `\n---\n\nVous avez été invité à télécharger un fichier par\n${requestorEmail}\n\nVeuillez utiliser le lien suivant pour le téléchargement :\n${uploadLink}\n`;
-        html += `<hr><p>Vous avez été invité à télécharger un fichier par<br><strong>${requestorEmail}</strong></p>
-                 <p>Veuillez utiliser le lien suivant pour le téléchargement :<br><a href="${uploadLink}">${uploadLink}</a></p>`;
-
-        if (passcode) {
-            text += `\nUtilisez le code d'accès pour le téléchargement :\n${passcode}\n`;
-            html += `<p>Utilisez le code d'accès pour le téléchargement :<br><strong>${passcode}</strong></p>`;
-        }
-
         try {
             const info = await transporter.sendMail({
                 from: mailerFrom,
-                to: testEmail, // Sending to somp@outlook.com for testing fully
+                to: targetEmail, // Sending to uploaderEmail properly
                 subject: subject,
                 text: text,
                 html: html,
             });
-            console.log(`[SMTP EMAIL SENT] Message ID: ${info.messageId} to ${testEmail}`);
+            console.log(`[SMTP EMAIL SENT] Message ID: ${info.messageId} to ${targetEmail}`);
             return true;
         } catch (error: any) {
             console.error('Error sending SMTP email:', error);
@@ -81,7 +88,13 @@ export async function sendUploadRequestEmail(uploaderEmail: string, requestorEma
                 template_id: templateId,
                 personalisation: {
                     requestor: requestorEmail,
-                    upload_link: uploadLink
+                    upload_link: uploadLink,
+                    passcode: passcode || '',
+                    passcode_en: passcode ? `Use the passcode for uploading: ${passcode}` : '',
+                    passcode_fr: passcode ? `Utilisez le code d'accès pour le téléchargement : ${passcode}` : '',
+                    allow_multiple_en: allowMultiple ? 'Note: You are allowed to upload multiple files for this request.' : '',
+                    allow_multiple_fr: allowMultiple ? 'Remarque : Vous êtes autorisé à télécharger plusieurs fichiers pour cette demande.' : '',
+                    message: text // the full bilingual message inside one variable in case the template uses 'message'
                 }
             },
             {

@@ -15,6 +15,8 @@ interface UploadRequest {
   status: string;
   expiresAt: string;
   blobUri?: string;
+  allowMultiple?: boolean;
+  fileStatuses?: string;
 }
 
 export default function RequestorDashboard() {
@@ -42,7 +44,8 @@ export default function RequestorDashboard() {
     uploaderEmail: '', 
     requestedFileTypes: 'pdf,xlsx',
     expirationDays: '7',
-    secret: ''
+    secret: '',
+    allowMultiple: false
   });
   const [loading, setLoading] = useState(false);
   
@@ -67,7 +70,7 @@ export default function RequestorDashboard() {
       const config = await getAxiosConfig();
       await axios.post(`${API_BASE}/requests`, newRequest, config);
       setShowConfig(false);
-      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', secret: '' });
+      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', secret: '', allowMultiple: false });
       fetchRequests();
     } catch (error) {
       console.error('Failed to create request', error);
@@ -95,6 +98,16 @@ export default function RequestorDashboard() {
       case 'Clean': return <span className="badge badge-success">{status}</span>;
       case 'Malicious': return <span className="badge badge-danger">{status}</span>;
       default: return <span className="badge">{status}</span>;
+    }
+  };
+
+  const getFileStatus = (req: UploadRequest, blobName: string) => {
+    if (!req.fileStatuses) return req.status;
+    try {
+      const statuses = JSON.parse(req.fileStatuses);
+      return statuses[blobName] || req.status;
+    } catch {
+      return req.status;
     }
   };
 
@@ -136,6 +149,18 @@ export default function RequestorDashboard() {
                 value={newRequest.requestedFileTypes}
                 onChange={e => setNewRequest({...newRequest, requestedFileTypes: e.target.value})}
               />
+            </div>
+            <div className="form-group" style={{ marginBottom: '15px' }}>
+              <label htmlFor="allowMultiple" style={{ fontWeight: 'normal' }}>
+                <input 
+                  type="checkbox" 
+                  id="allowMultiple"
+                  checked={newRequest.allowMultiple}
+                  onChange={e => setNewRequest({...newRequest, allowMultiple: e.target.checked})}
+                  style={{ marginRight: '8px' }}
+                />
+                {t('allow_multiple', lang)}
+              </label>
             </div>
             <div className="form-group">
               <label htmlFor="expirationDays">{t('link_exp', lang)} <span className="required">{t('required', lang)}</span></label>
@@ -204,11 +229,17 @@ export default function RequestorDashboard() {
                 <td>
                   {req.blobUri ? (
                     <div>
-                      {req.blobUri.split(',').map((blobName: string, idx: number) => (
-                        <button key={idx} className="btn btn-success" style={{display: 'block', marginBottom: '5px'}} onClick={() => handleDownload(req.rowKey, blobName)}>
-                          <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> {t('download', lang)} {blobName}
-                        </button>
-                      ))}
+                      {req.blobUri.split(',').map((blobName: string, idx: number) => {
+                        const fileStatus = getFileStatus(req, blobName);
+                        return (
+                          <div key={idx} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button className="btn btn-success" onClick={() => handleDownload(req.rowKey, blobName)}>
+                              <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
+                            </button>
+                            {getStatusBadge(fileStatus)}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <span>---</span>

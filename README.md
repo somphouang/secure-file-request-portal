@@ -178,6 +178,53 @@ npm run dev
 > - `AZURE_STORAGE_ACCOUNT_KEY`
 > - `GCNOTIFY_API_KEY`
 
+### Assemblyline V4 API Integration
+
+
+### 1. **Individual File Status in the Requestor Dashboard**
+- I added a new property `fileStatuses` to the Azure Table Data Schema (`azureTableService.ts`), which acts as a lightweight JSON string to map specific file blobs to their individual scanning status (`Clean`, `Malicious`, etc).
+- I updated the **Requestor Dashboard UI** (`RequestorDashboard.tsx`) so that each downloaded blob maps and correlates directly against its own individual badge within that JSON payload. 
+- The `assemblylineService.ts` now securely manages checking `req.fileStatuses` and correctly updates only the scanned file, while calculating whether the overarching request status should be rolled to `Malicious` or kept as `Clean`. 
+
+### 2. **AssemblyLine4 Docker Engine Integration (Local Test)**
+- **Hooked Backend up to AL4 API**: I modified your mocked `assemblylineService.ts` fallback. When you are ready to switch from mock behavior, populate your `.env` to point `ASSEMBLYLINE_URL` (instead of "mock") to your AL4 service route. The backend service will extract Azure SAS Blob URIs automatically, pass them into your AL4 instance using an HTTP `POST /api/v4/submit/`, and synchronously poll the submission ticket queue to retrieve valid results locally without mocking functionality. 
+
+**Steps to deploy CCCS Assemblyline 4 locally (WSL/Ubuntu):**
+To run the full suite, the official [CCCS Installation Guide](https://cybercentrecanada.github.io/assemblyline4_docs/installation/appliance/docker/) requires utilizing their composed deployment repository to guarantee appropriate service meshing. Run the following on your local Docker engine host (e.g., WSL terminal):
+
+1. **Configure Docker to use larger address pools:**
+   ```bash
+   sudo sysctl -w vm.max_map_count=262144
+   ```
+
+2. **Download the Assemblyline Docker Compose repository:**
+   ```bash
+   git clone https://github.com/CybercentreCanada/assemblyline-docker-compose.git al4-local
+   cd al4-local
+   ```
+
+3. **Create your HTTPS certificates:**
+   ```bash
+   openssl req -nodes -x509 -newkey rsa:4096 -keyout config/nginx.key -out config/nginx.crt -days 365 -subj "/C=CA/ST=Ontario/L=Ottawa/O=CCCS/CN=assemblyline.local"
+   ```
+
+4. **Pull necessary Docker containers:**
+   ```bash
+   sudo docker compose pull --ignore-buildable
+   sudo env COMPOSE_BAKE=true docker compose build
+   sudo docker compose -f bootstrap-compose.yaml pull
+   ```
+
+5. **Deploy the CCCS Appliance:**
+   ```bash
+   sudo docker compose up -d --wait
+   sudo docker compose -f bootstrap-compose.yaml up
+   ```
+
+**Once it's running:** Access the local AL4 UI at `https://localhost` with the default `.env` credentials (`admin`/`admin`). Make sure your App Backend `.env` points to this hostname: `ASSEMBLYLINE_URL=https://localhost`.
+
+*Note: Since the backend is running `node dist/server.js` and not actively watching `.ts` files on edit, you'll need to restart your terminal process (`Ctrl+C`, then `cd .\backend\ && npm install && npm run build && npm start`) for these modifications to take effect.*
+
 ### Verification
 
 Triggered an immediate mock upload with a sample `test.txt` via an API pipeline mimicking exactly what the React UI does, testing the full lifecycle:
@@ -256,7 +303,31 @@ Successfully uploaded file from uploader in English and Requestor showing clean 
 Successfully uploaded file from uploader in French and Requestor showing clean status ready for download:
 ![alt text](img/successful_uploaded_fr.png)
 
+#### Uploading multiple files feature
 
+Add allow multiple files checkbox in the request form and send email to uploader with the allow multiple files information
+![alt text](img/allow_multiple_files_en.png)
+![alt text](img/allow_multiple_files_fr.png)
+
+Uploading multiple files in English:
+![alt text](img/uploading_multiple_files_en.png)
+
+Uploading multiple files in French:
+![alt text](img/uploading_multiple_files_fr.png)
+
+When multiple files are not enabled by the Requestor
+![alt text](img/multiple_files_not_enabled-en.png)
+![alt text](img/multiple_files_not_enabled-fr.png)
+
+Uploading multiple files when enabled by the Requestor the Uploader will see a new button to upload multiple files
+![alt text](img/uploading_multiple_files_en.png)
+![alt text](img/uploading_multiple_files_status_en.png)
+![alt text](img/uploading_multiple_files_status_fr.png)
+
+Once uploading are done, the uploader cannot upload anymore
+![alt text](img/uploading_multiple_files_done_en.png)
+![alt text](img/uploading_multiple_files_done_fr.png)
+![alt text](image.png)
 
 ### Troubleshooting Logs
 
@@ -375,3 +446,31 @@ Run `npm audit` for details.
   ➜  Network: http://[IP_ADDRESS]  
 ```
 
+### Amazon SES - SMTP Configuration
+
+The error you are encountering is a standard restriction imposed by Amazon Web Services (AWS) called **SES Sandbox Mode**.
+
+When you first set up an Amazon SES account, it is placed in a sandbox environment to prevent fraud and abuse. While your account is in this sandbox, **you are only allowed to send emails to and from addresses that you have explicitly verified** in the AWS Console. 
+
+Since `soundmos@gmail.com` hasn't been verified in your AWS account, SES blocks the outgoing email and throws the `Message rejected: Email address is not verified` error.
+
+### How to fix it:
+
+You have two options depending on what you are trying to accomplish right now:
+
+#### Option 1: Quick Fix for Testing (Verify the specific email)
+If you just want to test the portal with a few distinct email addresses (like `soundmos@gmail.com`), you need to verify them as identities:
+1. Log into your **AWS Management Console**.
+2. Navigate to **Amazon Simple Email Service (SES)**.
+3. Make sure you are in the correct region (in your case, **`ca-central-1`** / Canada (Central)).
+4. On the left sidebar, click **Identities** (under Configuration).
+5. Click **Create identity**, select **Email address**, and enter `soundmos@gmail.com`.
+6. Click **Create identity**. AWS will send a verification email with a link to that address. 
+7. Once you click the link in that email, the identity is verified, and your application will successfully transmit SES SMTP emails to it.
+
+#### Option 2: Long-term Fix (Move out of the SES Sandbox)
+If you are ready for production and want the ability to send requests to *any* uploader's email address dynamically without verifying them beforehand, you must request AWS to remove the sandbox restriction:
+1. In the **SES Console**, go to your **Account dashboard**.
+2. Under the "Account details" section, look for a banner or button that says **Request production access** (or "Edit your account details" to move out of the sandbox).
+3. Fill out the application form explaining your use case (e.g., "This application is a secure file upload portal for the Government of Canada, and we need to send temporary upload links to external citizens and businesses").
+4. Submit the request. AWS usually approves these requests within 24 hours. Once approved, your application can send emails to any valid address globally.

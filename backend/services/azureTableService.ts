@@ -17,6 +17,9 @@ export interface UploadRequestRecord {
     expiresAt: Date;
     blobUri?: string;
     fileHash?: string;
+    allowMultiple?: boolean;
+    fileStatuses?: string;
+    isClosed?: boolean;
 }
 
 export type UploadRequest = TableEntity<UploadRequestRecord>;
@@ -37,7 +40,8 @@ export async function createUploadRequest(
     uploaderEmail: string, 
     requestedFileTypes: string, 
     secretHash?: string, 
-    expirationDays: number = 7
+    expirationDays: number = 7,
+    allowMultiple: boolean = false
 ): Promise<Partial<UploadRequest>> {
     const token = uuidv4();
     const entity: any = {
@@ -48,7 +52,8 @@ export async function createUploadRequest(
         status: 'Pending',
         secretHash: secretHash || '',
         createdAt: new Date(),
-        expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000))
+        expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
+        allowMultiple
     };
     
     console.log('Inserting entity:', JSON.stringify(entity, null, 2));
