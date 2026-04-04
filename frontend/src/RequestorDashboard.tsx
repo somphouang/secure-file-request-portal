@@ -124,14 +124,18 @@ export default function RequestorDashboard() {
     }
   };
 
-  const inviteDownloader = async (token: string) => {
+  const inviteDownloader = async (token: string, blobName?: string) => {
     const downloaderEmail = window.prompt('Downloader email (recipient for secure link):');
     if (!downloaderEmail) return;
 
     try {
       const config = await getAxiosConfig();
-      await axios.post(`${API_BASE}/requests/${token}/invite-downloader`, { downloaderEmail }, config);
-      alert('Downloader invitation email sent successfully.');
+      await axios.post(`${API_BASE}/requests/${token}/invite-downloader`, { 
+        downloaderEmail,
+        blobName 
+      }, config);
+      alert('Downloader invitation email sent successfully. The file has been added to your Shared Files list.');
+      fetchShares(); // Refresh the shares list to show the new share
     } catch (error) {
       console.error('Failed to send downloader invite', error);
       alert('Failed to send downloader invite.');
@@ -411,14 +415,14 @@ export default function RequestorDashboard() {
                               <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
                             </button>
                             {getStatusBadge(fileStatus)}
+                            {fileStatus === 'Clean' && (
+                              <button className="btn btn-secondary btn-small" onClick={() => inviteDownloader(req.rowKey, blobName)}>
+                                Share
+                              </button>
+                            )}
                           </div>
                         );
                       })}
-                      <div style={{ marginTop: '8px' }}>
-                        <button className="btn btn-secondary" onClick={() => inviteDownloader(req.rowKey)}>
-                          Send downloader link
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     <span>---</span>

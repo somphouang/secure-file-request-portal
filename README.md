@@ -84,6 +84,12 @@ graph TD
 - Requestor can see real-time download confirmation
 - Includes timestamp of when download was completed
 
+### 5. **Conditional File Sharing** (New)
+- **Share Button Visibility**: "Share" button only appears next to individual files that have been scanned and marked as "Clean"
+- **Status-Based Access**: Requestors cannot share files that are still scanning, pending, or marked as malicious
+- **Per-File Sharing**: When multiple files are uploaded, each clean file can be shared individually
+- **Shared Files Tracking**: Shared files appear in the "Shared Files" table with proper expiration dates and status tracking
+
 ### 5. **Bilingual Support**
 - Full English and French interface
 - All email templates available in both languages
@@ -216,13 +222,15 @@ Initiates file upload for direct sharing with downloader. Now accepts expiration
 - **Body**: `{ filename: string, expirationDays?: number }` (defaults to 7)
 - **Response**: `{ token, url, blobName }`
 
-#### Requestor - Invite Downloader
+#### Requestor - Invite Downloader from Upload
 ```
-POST /api/requests/:token/invite-downloader-to-share
+POST /api/requests/:token/invite-downloader
 ```
-Invites external downloader with auto-generated passcode.
-- **Body**: `{ downloaderEmail: string, fileName: string }`
-- **Response**: `{ shareToken, caseNumber, passcode (hashed), ... }`
+Creates a new share record from an uploaded file and sends download invitation. Only works when file status is "Clean".
+- **Body**: `{ downloaderEmail: string, blobName?: string }`
+- **Response**: `{ message, shareToken, caseNumber }`
+- **Requirements**: File must be scanned and marked as "Clean"
+- **Creates**: New entry in DownloadShares table with expiration tracking
 
 #### Uploader - Get Request Details
 ```
@@ -598,6 +606,7 @@ Dashboard showing various statuses in French:
 | **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
 | **File Storage** | Azure Blob Storage | Azure Blob Storage |
 | **Metadata** | UploadRequests table | DownloadShares table |
+| **Sharing Condition** | N/A | Only when file status = "Clean" |
 
 ---
 

@@ -370,7 +370,7 @@ export const getShareInfo = async (req: Request, res: Response) => {
 export const inviteDownloader = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
-        const { downloaderEmail } = req.body;
+        const { downloaderEmail, blobName } = req.body;
 
         if (!downloaderEmail) {
             return res.status(400).json({ error: 'downloaderEmail required' });
@@ -383,21 +383,54 @@ export const inviteDownloader = async (req: Request, res: Response) => {
         if (!request) return res.status(404).json({ error: 'Upload request not found' });
         if (!request.blobUri) return res.status(400).json({ error: 'No file has been uploaded yet' });
 
+        // Check if file is clean before allowing sharing
+        if (request.status !== 'Clean') {
+            return res.status(400).json({ error: 'File must be clean before sharing' });
+        }
+
+        // Determine which blob to share (use provided blobName or first one)
+        const targetBlobName = blobName || request.blobUri.split(',')[0];
+        
+        // Verify the blob exists in the request
+        if (!request.blobUri.includes(targetBlobName)) {
+            return res.status(400).json({ error: 'Specified file not found in upload request' });
+        }
+
+        // Create a new share record for tracking
+        const shareToken = uuidv4();
+        const originalFilename = targetBlobName.split('/').pop() || targetBlobName;
+
+        // Use same expiration as original request or default to 7 days
+        const expirationDays = request.expiresAt ?
+            Math.ceil((new Date(request.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 7;
+
+        const shareEntity = await azureTableService.createDownloadShare(
+            requestorEmail,
+            shareToken,
+            targetBlobName,
+            originalFilename,
+            Math.max(1, expirationDays) // Ensure at least 1 day
+        );
+
+        // Update the share with downloader info and send invitation
         const downloadPasscode = generatePasscode();
         const downloadPasscodeHash = await bcrypt.hash(downloadPasscode, 10);
 
-        await azureTableService.updateRequestStatus(requestorEmail, token, {
+        await azureTableService.updateDownloadShare(requestorEmail, shareToken, {
             downloaderEmail,
             downloadSecretHash: downloadPasscodeHash,
-            sharedForDownload: true,
             status: 'Awaiting Download'
         });
 
-        const downloadLink = `${FRONTEND_URL}/download/${token}`;
+        const downloadLink = `${FRONTEND_URL}/download-share/${shareToken}`;
 
-        await gcNotifyService.sendDownloadRequestEmail(downloaderEmail, requestorEmail, downloadLink, downloadPasscode, request.caseNumber);
+        await gcNotifyService.sendDownloadRequestEmail(downloaderEmail, requestorEmail, downloadLink, downloadPasscode, shareEntity.caseNumber);
 
-        res.status(200).json({ message: 'Downloader invite email sent' });
+        res.status(200).json({
+            message: 'Downloader invitation email sent',
+            shareToken,
+            caseNumber: shareEntity.caseNumber
+        });
     } catch (error: any) {
         console.error('Error sending downloader invite:', error.message, error.stack);
         res.status(500).json({ error: 'Internal server error' });
