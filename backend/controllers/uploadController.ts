@@ -185,7 +185,7 @@ export const uploadFileForSharing = async (req: Request, res: Response) => {
         let requestorEmail = req.user?.preferred_username || 'admin@example.com';
         requestorEmail = requestorEmail.replace(/[\/\\#\?]/g, '_');
 
-        const { filename } = req.body;
+        const { filename, expirationDays = 7 } = req.body;
         
         if (!filename) {
             return res.status(400).json({ error: 'filename required' });
@@ -200,7 +200,8 @@ export const uploadFileForSharing = async (req: Request, res: Response) => {
             requestorEmail,
             token,
             blobName,
-            filename
+            filename,
+            parseInt(expirationDays)
         );
 
         const sasInfo = azureBlobService.generateUploadSasToken(blobName);

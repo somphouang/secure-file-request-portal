@@ -66,6 +66,10 @@ export default function RequestorDashboard() {
   });
   const [shareFile, setShareFile] = useState<File | null>(null);
   const [uploadingShare, setUploadingShare] = useState(false);
+  const [newShare, setNewShare] = useState({ 
+    downloaderEmail: '', 
+    expirationDays: '7'
+  });
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {
@@ -140,17 +144,21 @@ export default function RequestorDashboard() {
     }
   };
 
-  const uploadAndShareFile = async () => {
-    if (!shareFile) return;
+  const uploadAndShareFile = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!shareFile || !newShare.downloaderEmail) return;
     setUploadingShare(true);
 
     try {
       const config = await getAxiosConfig();
       
-      // Step 1: Get upload SAS
+      // Step 1: Get upload SAS with expiration
       const sasRes = await axios.post<{ url: string; blobName: string; token: string }>(
         `${API_BASE}/shares/upload`,
-        { filename: shareFile.name },
+        { 
+          filename: shareFile.name,
+          expirationDays: parseInt(newShare.expirationDays)
+        },
         config
       );
       const { url, blobName, token } = sasRes.data;
@@ -171,24 +179,20 @@ export default function RequestorDashboard() {
       );
 
       // Step 4: Invite downloader
-      const downloaderEmail = window.prompt('Downloader email (recipient for secure link):');
-      if (downloaderEmail) {
-        await axios.post(
-          `${API_BASE}/shares/${token}/invite`,
-          { downloaderEmail },
-          config
-        );
-        alert('File uploaded! Downloader invitation sent.');
-      } else {
-        alert('File uploaded. You can invite a downloader later.');
-      }
+      await axios.post(
+        `${API_BASE}/shares/${token}/invite`,
+        { downloaderEmail: newShare.downloaderEmail },
+        config
+      );
 
+      alert('File uploaded and downloader invitation sent successfully!');
       setShareFile(null);
+      setNewShare({ downloaderEmail: '', expirationDays: '7' });
       setShowShareForm(false);
       fetchShares();
     } catch (error) {
       console.error('Upload error', error);
-      alert('Failed to upload file.');
+      alert('Failed to upload file and send invitation.');
     } finally {
       setUploadingShare(false);
     }
@@ -312,26 +316,58 @@ export default function RequestorDashboard() {
 
       {showShareForm && (
         <fieldset style={{ marginTop: '1em' }}>
-          <legend>Upload and Share File</legend>
-          <div className="form-group">
-            <label htmlFor="shareFile">Select File to Share</label>
-            <input 
-              type="file" 
-              className="form-control"
-              id="shareFile"
-              onChange={handleShareFile}
-              required
-            />
-            {shareFile && <p style={{ marginTop: '0.5em' }}>Selected: {shareFile.name}</p>}
-          </div>
-          <div style={{ marginTop: '1.5em' }}>
-            <button className="btn btn-primary" onClick={uploadAndShareFile} disabled={!shareFile || uploadingShare}>
-              {uploadingShare ? 'Uploading...' : 'Upload and Share'}
-            </button>
-            <button type="button" className="btn btn-default" style={{ marginLeft: '10px' }} onClick={() => { setShowShareForm(false); setShareFile(null); }}>
-              Cancel
-            </button>
-          </div>
+          <legend>Share File with Downloader</legend>
+          <form onSubmit={uploadAndShareFile}>
+            <div className="form-group">
+              <label htmlFor="shareFile">Select File to Share <span className="required">*</span></label>
+              <input 
+                type="file" 
+                className="form-control"
+                id="shareFile"
+                onChange={handleShareFile}
+                required
+              />
+              {shareFile && <p style={{ marginTop: '0.5em', fontSize: '0.9em', color: '#666' }}>Selected: {shareFile.name}</p>}
+            </div>
+            <div className="form-group">
+              <label htmlFor="downloaderEmail">Downloader Email <span className="required">*</span></label>
+              <span className="hint-text">Email address of the person who will download the file</span>
+              <input 
+                type="email" 
+                className="form-control"
+                id="downloaderEmail"
+                required
+                value={newShare.downloaderEmail}
+                onChange={e => setNewShare({...newShare, downloaderEmail: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="shareExpirationDays">Link Expiration <span className="required">*</span></label>
+              <select 
+                className="form-control" 
+                id="shareExpirationDays" 
+                value={newShare.expirationDays}
+                onChange={e => setNewShare({...newShare, expirationDays: e.target.value})}
+              >
+                <option value="1">1 Day</option>
+                <option value="7">7 Days</option>
+                <option value="14">14 Days</option>
+                <option value="30">30 Days</option>
+              </select>
+            </div>
+            <div style={{ marginTop: '1.5em' }}>
+              <button className="btn btn-primary" type="submit" disabled={!shareFile || !newShare.downloaderEmail || uploadingShare}>
+                {uploadingShare ? 'Uploading and Sending...' : 'Upload and Send Invitation'}
+              </button>
+              <button type="button" className="btn btn-default" style={{ marginLeft: '10px' }} onClick={() => { 
+                setShowShareForm(false); 
+                setShareFile(null); 
+                setNewShare({ downloaderEmail: '', expirationDays: '7' });
+              }}>
+                Cancel
+              </button>
+            </div>
+          </form>
         </fieldset>
       )}
 

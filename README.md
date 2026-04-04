@@ -208,11 +208,13 @@ Creates a new upload request and sends email to uploader.
 - **Body**: `{ uploaderEmail: string, allowMultipleFiles?: boolean }`
 - **Response**: `{ token, caseNumber, expiresAt, ... }`
 
-#### Requestor - Create File Share
+#### Requestor - Create File Share Upload
 ```
-POST /api/requests/:token/upload-file-for-sharing
+POST /api/shares/upload
 ```
-Initiates file upload for direct sharing with downloader.
+Initiates file upload for direct sharing with downloader. Now accepts expiration days.
+- **Body**: `{ filename: string, expirationDays?: number }` (defaults to 7)
+- **Response**: `{ token, url, blobName }`
 
 #### Requestor - Invite Downloader
 ```
@@ -482,12 +484,12 @@ Once uploading are done, the uploader cannot upload anymore
 This feature allows requestors to directly upload files and send download invitations to external recipients with auto-generated passcodes.
 
 #### Creating a Direct File Share Request (English)
-Requestor can now directly upload a file and invite a downloader in a single workflow:
-![alt text](img/create_file_share_en.png)
+Requestor can now directly upload a file and invite a downloader in a single unified form:
+![alt text](img/create_file_share_unified_en.png)
 
 #### Creating a Direct File Share Request (French)
-Bilingual support for creating file shares:
-![alt text](img/create_file_share_fr.png)
+Bilingual support for creating file shares with all fields in one form:
+![alt text](img/create_file_share_unified_fr.png)
 
 #### Downloader Accessing File Share (English)
 External downloader receives email with unique passcode link and can access shared files:
@@ -592,6 +594,7 @@ Dashboard showing various statuses in French:
 | **Security** | SAS token write-only, passcode not needed | Passcode + secure download link |
 | **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
 | **Tracking** | Case number, status progression | Case number, download completion |
+| **Expiration** | Configurable (1,7,14,30 days) | Configurable (1,7,14,30 days) |
 | **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
 | **File Storage** | Azure Blob Storage | Azure Blob Storage |
 | **Metadata** | UploadRequests table | DownloadShares table |
