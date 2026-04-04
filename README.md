@@ -536,199 +536,99 @@ Bilingual Support (English/French)
 
 The following new screenshots were added in chronological order by creation date. Each file shows a recent frontend or backend screen capture for uploader, requestor, multi-file, share, and downloader workflows.
 
-- ![Secure File Request Portal Login](img/image.png)
-
 - ![Portail Sécurisé de Demande de Fichiers](img/image-1.png)
 
-- ![Multiple files not requested - English](img/multiple_fles_not_requested-en.png) `multiple_fles_not_requested-en.png` – Requestor/uploader state when multiple-file upload is not enabled, showing the single-file request flow.
-- ![Upload fulfilled confirmation - English](img/upload_fulfilled_en.png) `upload_fulfilled_en.png` – Confirmation screen after the uploader successfully finishes the upload.
-- ![Requestor status summary](img/upload_requestor_status.png) `upload_requestor_status.png` – Requestor dashboard showing current request progress and status indicators.
-- ![File share success - English](img/uploaded-file-share-success-en.png) `uploaded-file-share-success-en.png` – Confirmation that a shared file invitation was created successfully.
-- ![File share details - French](img/uploaded-file-share-fr.png) `uploaded-file-share-fr.png` – French-language view of shared file details and download status.
-- ![File share success - French](img/uploaded-file-share-success-fr.png) `uploaded-file-share-success-fr.png` – French confirmation page after a shared file is prepared.
-- ![File share details - English](img/uploaded-file-share-en.png) `uploaded-file-share-en.png` – English-language shared file detail and status screen.
-- ![Multi-file share ready - English](img/uploaded-multifile-share-ready-1-en.png) `uploaded-multifile-share-ready-1-en.png` – English multi-file share ready screen showing a file prepared for download.
-- ![Multi-file share ready - French](img/uploaded-multifile-share-ready-1-fr.png) `uploaded-multifile-share-ready-1-fr.png` – French multi-file share ready screen showing a share-ready entry.
-- ![Multi-file email upload complete - English](img/requestor-upload-multifile-email-link-uploading-2-complete-en.png) `requestor-upload-multifile-email-link-uploading-2-complete-en.png` – Requestor email view showing the second file upload completed in a multi-file request.
-- ![Multi-file email fulfilment - English](img/requestor-upload-multifile-email-link-uploading-2-fulfil-en.png) `requestor-upload-multifile-email-link-uploading-2-fulfil-en.png` – English email view with the second multi-file upload fulfilment state.
-- ![Multi-file email fulfilment - French](img/requestor-upload-multifile-email-link-uploading-2-fulfil-fr.png) `requestor-upload-multifile-email-link-uploading-2-fulfil-fr.png` – French email view for the second multi-file upload fulfilment.
-- ![Multi-file email complete - French](img/requestor-upload-multifile-email-link-uploading-2-complete-fr.png) `requestor-upload-multifile-email-link-uploading-2-complete-fr.png` – French requestor email showing the second upload completion.
-- ![Multi-file upload progress email - English](img/requestor-upload-multifile-email-link-uploading-2-en.png) `requestor-upload-multifile-email-link-uploading-2-en.png` – English requestor email showing second file upload in progress.
-- ![Multi-file upload progress email - French](img/requestor-upload-multifile-email-link-uploading-2-fr.png) `requestor-upload-multifile-email-link-uploading-2-fr.png` – French requestor email with the second file upload in progress.
-- ![Multi-file email upload link - French](img/requestor-upload-multifile-email-link-upload-fr.png) `requestor-upload-multifile-email-link-upload-fr.png` – French email containing the upload link for a multi-file request.
-- ![Multi-file upload first file progress - English](img/requestor-upload-multifile-email-link-uploading-1-en.png) `requestor-upload-multifile-email-link-uploading-1-en.png` – English requestor email showing first file upload progress for a multi-file request.
-- ![Multi-file upload first file progress - French](img/requestor-upload-multifile-email-link-uploading-1-fr.png) `requestor-upload-multifile-email-link-uploading-1-fr.png` – French requestor email showing first file upload progress.
-- ![Requestor multi-file email - French](img/requestor-upload-multifile-email-fr.png) `requestor-upload-multifile-email-fr.png` – French version of the multi-file upload request email.
-- ![Requestor multi-file email link - English](img/requestor-upload-multifile-email-link-upload-en.png) `requestor-upload-multifile-email-link-upload-en.png` – English version of the multi-file upload request email with the upload link.
-- ![Downloader downloaded status - French](img/file-downloader-downloaded-status-fr.png) `file-downloader-downloaded-status-fr.png` – French downloader page showing the completed download status.
-- ![Requestor multi-file request form - English](img/requestor-upload-multifile-en.png) `requestor-upload-multifile-en.png` – English requestor screen for creating a multi-file upload request.
-- ![Requestor multi-file request form - French](img/requestor-upload-multifile-fr.png) `requestor-upload-multifile-fr.png` – French requestor screen for creating a multi-file upload request.
-- ![Downloader downloaded status - English](img/file-downloader-downloaded-status-en.png) `file-downloader-downloaded-status-en.png` – English downloader page after the file has been successfully downloaded.
-- ![Downloader download page - English](img/file-downloader-downloadpage-en.png) `file-downloader-downloadpage-en.png` – English downloader page with the download action and passcode fields.
-- ![Downloader download page - French](img/file-downloader-downloadpage-fr.png) `file-downloader-downloadpage-fr.png` – French downloader page with download action and passcode entry.
-- ![Downloader email - English](img/file-downloader-email-en.png) `file-downloader-email-en.png` – English email sent to the downloader with link and passcode instructions.
-- ![Downloader email - French](img/file-downloader-email-fr.png) `file-downloader-email-fr.png` – French email sent to the downloader with link and passcode instructions.
-- ![Uploaded file malicious status - French](img/file-uploaded-status-malicious-fr.png) `file-uploaded-status-malicious-fr.png` – French requestor screen showing a file that was marked malicious.
-- ![Uploaded file malicious status - English](img/file-uploaded-status-malicious-en.png) `file-uploaded-status-malicious-en.png` – English requestor screen showing a file that was marked malicious.
-- ![Uploader success - French](img/uploader-uploaded-success-fr.png) `uploader-uploaded-success-fr.png` – French confirmation screen for a successful uploader upload.
-- ![Uploader success - English](img/uploader-uploaded-success-en.png) `uploader-uploaded-success-en.png` – English confirmation screen for a successful uploader upload.
-- ![Example PDF upload - English](img/upload-examplepdf-en.png) `upload-examplepdf-en.png` – English uploader screen demonstrating PDF upload guidance.
-- ![Example PDF upload - French](img/upload-examplepdf-fr.png) `upload-examplepdf-fr.png` – French uploader screen demonstrating PDF upload guidance.
-- ![Uploader link upload page - English](img/uploader-link-uploadfile-en.png) `uploader-link-uploadfile-en.png` – English uploader view displaying the secure upload link and instructions.
-- ![Uploader link upload page - French](img/uploader-link-uploadfile-fr.png) `uploader-link-uploadfile-fr.png` – French uploader view displaying the secure upload link and instructions.
-- ![Uploader secret passcode page - English](img/uploader-link-secret-passcode-en.png) `uploader-link-secret-passcode-en.png` – English uploader page showing the generated secret passcode for upload.
-- ![Uploader secret passcode page - French](img/uploader-link-secret-passcode-fr.png) `uploader-link-secret-passcode-fr.png` – French uploader page showing the generated secret passcode.
-- ![Downloader request email - French](img/downloader-request-email-fr.png) `downloader-request-email-fr.png` – French email shown when a downloader is invited to access a shared file.
-- ![Share file list ready - French](img/share-file-list-ready-fr.png) `share-file-list-ready-fr.png` – French requestor view of the share file list when shares are ready.
-- ![Downloader invite sent - English](img/file-uploaded-downloader-invite-sent-en.png) `file-uploaded-downloader-invite-sent-en.png` – English screen confirming the downloader invite was sent.
-- ![New share file for downloader - English](img/new-share-file-for-downloader-en.png) `new-share-file-for-downloader-en.png` – English shared-file request view after a new downloader share is created.
-- ![New share file for downloader - French](img/new-share-file-for-downloader-fr.png) `new-share-file-for-downloader-fr.png` – French shared-file request view after a new downloader share is created.
-- ![Share file list ready - English](img/share-file-list-ready-en.png) `share-file-list-ready-en.png` – English requestor view of ready file shares in the dashboard.
-- ![Active uploader request pending - English](img/active-uploader-request-pending-en.png) `active-uploader-request-pending-en.png` – English requestor dashboard showing an active uploader request in pending state.
-- ![Active uploader request pending - French](img/active-uploader-request-pending-fr.png) `active-uploader-request-pending-fr.png` – French requestor dashboard showing an active uploader request in pending state.
+- ![Secure File Request Portal Login](img/image.png)
+
 - ![New uploader request form - English](img/new-uploader-request-en.png) `new-uploader-request-en.png` – English new uploader request creation form.
+
 - ![New uploader request form - French](img/new-uploader-request-fr.png) `new-uploader-request-fr.png` – French new uploader request creation form.
 
-### Demo (Archived)
+- ![Active uploader request pending - English](img/active-uploader-request-pending-en.png) `active-uploader-request-pending-en.png` – English requestor dashboard showing an active uploader request in pending state.
 
+- ![Active uploader request pending - French](img/active-uploader-request-pending-fr.png) `active-uploader-request-pending-fr.png` – French requestor dashboard showing an active uploader request in pending state.
 
-Creating new Request
-![Request Details](img/image-3.png)
+- ![New share file for downloader - English](img/new-share-file-for-downloader-en.png) `new-share-file-for-downloader-en.png` – English shared-file request view after a new downloader share is created.
 
-French Language Support
-![Détails de la demande](img/image-4.png)
+- ![New share file for downloader - French](img/new-share-file-for-downloader-fr.png) `new-share-file-for-downloader-fr.png` – French shared-file request view after a new downloader share is created.
 
+- ![Downloader invite sent - English](img/file-uploaded-downloader-invite-sent-en.png) `file-uploaded-downloader-invite-sent-en.png` – English screen confirming the downloader invite was sent.
 
+- ![Share file list ready - English](img/share-file-list-ready-en.png) `share-file-list-ready-en.png` – English requestor view of ready file shares in the dashboard.
 
-Test send request and view status
-![alt text](img/viewstatus-en.png)
-![alt text](img/viewstatus-multi-en.png)
+- ![Downloader request email - French](img/downloader-request-email-fr.png) `downloader-request-email-fr.png` – French email shown when a downloader is invited to access a shared file.
 
+- ![Uploader secret passcode page - English](img/uploader-link-secret-passcode-en.png) `uploader-link-secret-passcode-en.png` – English uploader page showing the generated secret passcode for upload.
 
-French Language Support status
-![alt text](img/viewstatus-fr.png)
+- ![Uploader secret passcode page - French](img/uploader-link-secret-passcode-fr.png) `uploader-link-secret-passcode-fr.png` – French uploader page showing the generated secret passcode.
 
+- ![Uploader link upload page - English](img/uploader-link-uploadfile-en.png) `uploader-link-uploadfile-en.png` – English uploader view displaying the secure upload link and instructions.
 
-Upload document
-![alt text](img/documentupload-en.png)
+- ![Uploader link upload page - French](img/uploader-link-uploadfile-fr.png) `uploader-link-uploadfile-fr.png` – French uploader view displaying the secure upload link and instructions.
 
-Document has been uploaded
-![alt text](img/documentuploadfulfilled-en.png)
+- ![Example PDF upload - French](img/upload-examplepdf-fr.png) `upload-examplepdf-fr.png` – French uploader screen demonstrating PDF upload guidance.
 
-French Language Support Document has been uploaded
-![alt text](img/documentuploadfulfilled-fr.png)
+- ![Example PDF upload - English](img/upload-examplepdf-en.png) `upload-examplepdf-en.png` – English uploader screen demonstrating PDF upload guidance.
 
+- ![Uploader success - English](img/uploader-uploaded-success-en.png) `uploader-uploaded-success-en.png` – English confirmation screen for a successful uploader upload.
 
-Email from Requestor in bilingual
-![alt text](img/requestor_email_en_fr.png)
+- ![Uploader success - French](img/uploader-uploaded-success-fr.png) `uploader-uploaded-success-fr.png` – French confirmation screen for a successful uploader upload.
 
-Uploading document following the email received:
-![alt text](img/uploading_passcode_en.png)
+- ![Uploaded file malicious status - English](img/file-uploaded-status-malicious-en.png) `file-uploaded-status-malicious-en.png` – English requestor screen showing a file that was marked malicious.
 
-Uploading document following the email received in French:
-![alt text](img/uploading_passcode_fr.png)
+- ![Uploaded file malicious status - French](img/file-uploaded-status-malicious-fr.png) `file-uploaded-status-malicious-fr.png` – French requestor screen showing a file that was marked malicious.
 
-Uploading file in English:
-![alt text](img/uploading_file_en.png)
+- ![Downloader email - English](img/file-downloader-email-en.png) `file-downloader-email-en.png` – English email sent to the downloader with link and passcode instructions.
 
-Uploading file in French:
-![alt text](img/uploading_file_fr.png)
+- ![Downloader email - French](img/file-downloader-email-fr.png) `file-downloader-email-fr.png` – French email sent to the downloader with link and passcode instructions.
 
+- ![Downloader download page - English](img/file-downloader-downloadpage-en.png) `file-downloader-downloadpage-en.png` – English downloader page with the download action and passcode fields.
 
-Successfully uploaded file from uploader in English and Requestor showing clean status ready for download:
-![alt text](img/successful_uploaded_en.png)
+- ![Downloader download page - French](img/file-downloader-downloadpage-fr.png) `file-downloader-downloadpage-fr.png` – French downloader page with download action and passcode entry.
 
-Successfully uploaded file from uploader in French and Requestor showing clean status ready for download:
-![alt text](img/successful_uploaded_fr.png)
+- ![Downloader downloaded status - English](img/file-downloader-downloaded-status-en.png) `file-downloader-downloaded-status-en.png` – English downloader page after the file has been successfully downloaded.
 
-#### Uploading multiple files feature
+- ![Downloader downloaded status - French](img/file-downloader-downloaded-status-fr.png) `file-downloader-downloaded-status-fr.png` – French downloader page showing the completed download status.
 
-Add allow multiple files checkbox in the request form and send email to uploader with the allow multiple files information
-![alt text](img/allow_multiple_files_en.png)
-![alt text](img/allow_multiple_files_fr.png)
+- ![Requestor multi-file request form - English](img/requestor-upload-multifile-en.png) `requestor-upload-multifile-en.png` – English requestor screen for creating a multi-file upload request.
 
-Uploading multiple files in English:
-![alt text](img/uploading_multiple_files_en.png)
+- ![Requestor multi-file request form - French](img/requestor-upload-multifile-fr.png) `requestor-upload-multifile-fr.png` – French requestor screen for creating a multi-file upload request.
 
-Uploading multiple files in French:
-![alt text](img/uploading_multiple_files_fr.png)
+- ![Requestor multi-file email - French](img/requestor-upload-multifile-email-fr.png) `requestor-upload-multifile-email-fr.png` – French version of the multi-file upload request email.
 
-When multiple files are not enabled by the Requestor
-![alt text](img/multiple_files_not_enabled-en.png)
-![alt text](img/multiple_files_not_enabled-fr.png)
+- ![Requestor multi-file email link - English](img/requestor-upload-multifile-email-link-upload-en.png) `requestor-upload-multifile-email-link-upload-en.png` – English version of the multi-file upload request email with the upload link.
 
-Uploading multiple files when enabled by the Requestor the Uploader will see a new button to upload multiple files
-![alt text](img/uploading_multiple_files_en.png)
-![alt text](img/uploading_multiple_files_status_en.png)
-![alt text](img/uploading_multiple_files_status_fr.png)
+- ![Multi-file email upload link - French](img/requestor-upload-multifile-email-link-upload-fr.png) `requestor-upload-multifile-email-link-upload-fr.png` – French email containing the upload link for a multi-file request.
 
-Once uploading are done, the uploader cannot upload anymore
-![alt text](img/uploading_multiple_files_done_en.png)
-![alt text](img/uploading_multiple_files_done_fr.png)
-![alt text](image.png)
+- ![Multi-file upload first file progress - English](img/requestor-upload-multifile-email-link-uploading-1-en.png) `requestor-upload-multifile-email-link-uploading-1-en.png` – English requestor email showing first file upload progress for a multi-file request.
 
----
+- ![Multi-file upload first file progress - French](img/requestor-upload-multifile-email-link-uploading-1-fr.png) `requestor-upload-multifile-email-link-uploading-1-fr.png` – French requestor email showing first file upload progress.
 
-## New Features - Direct File Share & Download Workflow
+- ![Multi-file upload progress email - English](img/requestor-upload-multifile-email-link-uploading-2-en.png) `requestor-upload-multifile-email-link-uploading-2-en.png` – English requestor email showing second file upload in progress.
 
-### Direct File Upload and Share (Requestor → Downloader)
+- ![Multi-file upload progress email - French](img/requestor-upload-multifile-email-link-uploading-2-fr.png) `requestor-upload-multifile-email-link-uploading-2-fr.png` – French requestor email with the second file upload in progress.
 
-This feature allows requestors to directly upload files and send download invitations to external recipients with auto-generated passcodes.
+- ![Multi-file email complete - French](img/requestor-upload-multifile-email-link-uploading-2-complete-fr.png) `requestor-upload-multifile-email-link-uploading-2-complete-fr.png` – French requestor email showing the second upload completion.
 
-#### Creating a Direct File Share Request (English)
-Requestor can now directly upload a file and invite a downloader in a single unified form:
-![alt text](img/create_file_share_unified_en.png)
+- ![Multi-file email upload complete - English](img/requestor-upload-multifile-email-link-uploading-2-complete-en.png) `requestor-upload-multifile-email-link-uploading-2-complete-en.png` – Requestor email view showing the second file upload completed in a multi-file request.
 
-#### Creating a Direct File Share Request (French)
-Bilingual support for creating file shares with all fields in one form:
-![alt text](img/create_file_share_unified_fr.png)
+- ![Multi-file email fulfilment - English](img/requestor-upload-multifile-email-link-uploading-2-fulfil-en.png) `requestor-upload-multifile-email-link-uploading-2-fulfil-en.png` – English email view with the second multi-file upload fulfilment state.
 
-#### Downloader Accessing File Share (English)
-External downloader receives email with unique passcode link and can access shared files:
-![alt text](img/downloader_share_access_en.png)
+- ![Multi-file email fulfilment - French](img/requestor-upload-multifile-email-link-uploading-2-fulfil-fr.png) `requestor-upload-multifile-email-link-uploading-2-fulfil-fr.png` – French email view for the second multi-file upload fulfilment.
 
-#### Downloader Accessing File Share (French)
-Bilingual support for downloader access:
-![alt text](img/downloader_share_access_fr.png)
+- ![Multi-file share ready - English](img/uploaded-multifile-share-ready-1-en.png) `uploaded-multifile-share-ready-1-en.png` – English multi-file share ready screen showing a file prepared for download.
 
-#### Downloader Entering Passcode (English)
-The downloader enters the auto-generated, encrypted passcode sent via email:
-![alt text](img/downloader_passcode_enter_en.png)
+- ![Multi-file share ready - French](img/uploaded-multifile-share-ready-1-fr.png) `uploaded-multifile-share-ready-1-fr.png` – French multi-file share ready screen showing a share-ready entry.
 
-#### Downloader Entering Passcode (French)
-Bilingual passcode entry:
-![alt text](img/downloader_passcode_enter_fr.png)
+- ![File share details - English](img/uploaded-file-share-en.png) `uploaded-file-share-en.png` – English-language shared file detail and status screen.
 
-#### Download Share Email Notification (English)
-Requestor and downloader receive bilingual notifications with case number and download link:
-![alt text](img/download_share_email_en.png)
+- ![File share details - French](img/uploaded-file-share-fr.png) `uploaded-file-share-fr.png` – French-language view of shared file details and download status.
 
-#### Download Share Email Notification (French)
-French version of email notification with bilingual content:
-![alt text](img/download_share_email_fr.png)
+- ![File share success - French](img/uploaded-file-share-success-fr.png) `uploaded-file-share-success-fr.png` – French confirmation page after a shared file is prepared.
+
+- ![File share success - English](img/uploaded-file-share-success-en.png) `uploaded-file-share-success-en.png` – Confirmation that a shared file invitation was created successfully.
 
 ---
-
-### Case Number Tracking
-
-All file requests and shares now include unique 16-character case numbers for audit and tracking purposes.
-
-#### Requestor Dashboard - Case Numbers in Upload Requests (English)
-Case number displayed in the first column of the requests table:
-![alt text](img/dashboard_case_numbers_requests_en.png)
-
-
-#### Requestor Dashboard - Case Numbers in Uploads (French)
-Dashboard view showing case numbers in French:
-![alt text](img/dashboard_case_numbers_requests_fr.png)
-
-#### Requestor Dashboard - Case Numbers in Shared Files (English)
-Case numbers shown in the file share table for tracking shared downloads:
-![alt text](img/dashboard_case_numbers_shares_en.png)
-
-#### Requestor Dashboard - Case Numbers in Shared Files (French)
-File share table with case numbers in French:
-![alt text](img/dashboard_case_numbers_shares_fr.png)
 
 #### Case Number Format Reference
 Request numbers follow the format: `RQ-[timestamp-base36][random-base36]` (truncated to 16 chars)
@@ -737,44 +637,6 @@ Request numbers follow the format: `RQ-[timestamp-base36][random-base36]` (trunc
 - Length: 16 characters maximum
 - Included in: Email subjects, email bodies, and all audit logs
 - Purpose: Unique tracking for compliance, auditing, and support reference
-
----
-
-### Download Completion Tracking
-
-Once a downloader accesses and downloads a file, the status automatically updates to reflect completion.
-
-#### Awaiting Download Status (English)
-After inviting a downloader, the request shows "Awaiting Download" status:
-![alt text](img/status_awaiting_download_en.png)
-
-#### Awaiting Download Status (French)
-French interface showing awaiting download status:
-![alt text](img/status_awaiting_download_fr.png)
-
-#### Downloaded Status - Completion (English)
-After downloader completes download, status updates to "Downloaded" with green checkmark:
-![alt text](img/status_downloaded_en.png)
-
-#### Downloaded Status - Completion (French)
-French interface showing completed download status:
-![alt text](img/status_downloaded_fr.png)
-
-#### Complete Status Lifecycle (English)
-Visual representation of status progression through the entire workflow:
-![alt text](img/status_lifecycle_en.png)
-
-#### Complete Status Lifecycle (French)
-Status lifecycle in French:
-![alt text](img/status_lifecycle_fr.png)
-
-#### Dashboard with Mixed Statuses (English)
-Requestor dashboard showing multiple requests at different stages (Pending, Uploaded, Scanning, Clean, Awaiting Download, Downloaded):
-![alt text](img/dashboard_mixed_statuses_en.png)
-
-#### Dashboard with Mixed Statuses (French)
-Dashboard showing various statuses in French:
-![alt text](img/dashboard_mixed_statuses_fr.png)
 
 ---
 
@@ -832,26 +694,7 @@ Azurite Table service is successfully listening at http://0.0.0.0:10002
 172.17.0.1 - - [28/Mar/2026:22:38:20 +0000] "PUT /devstoreaccount1/uploads?restype=container HTTP/1.1" 409 -
 172.17.0.1 - - [28/Mar/2026:22:38:20 +0000] "PUT /devstoreaccount1/?restype=service&comp=properties HTTP/1.1" 202 -
 172.17.0.1 - - [28/Mar/2026:22:38:27 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=PartitionKey%20eq%20%27live.com_somp%40outlook.com%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:27 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=PartitionKey%20eq%20%27live.com_somp%40outlook.com%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:36 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=RowKey%20eq%20%27a9813be7-7d2e-45d9-b391-32e9bb668e1c%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:36 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=RowKey%20eq%20%27a9813be7-7d2e-45d9-b391-32e9bb668e1c%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:42 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=RowKey%20eq%20%27a9813be7-7d2e-45d9-b391-32e9bb668e1c%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=RowKey%20eq%20%27a9813be7-7d2e-45d9-b391-32e9bb668e1c%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "OPTIONS /devstoreaccount1/uploads/a9813be7-7d2e-45d9-b391-32e9bb668e1c-1774737527633.pdf?sv=2026-02-06&st=2026-03-28T22%3A23%3A47Z&se=2026-03-28T23%3A38%3A47Z&sr=b&sp=cw&sig=ZpHy6wKc41vO7m9n0QQQ4cX8EJ1%2B%2BxR46dhlCO0JikA%3D HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "PUT /devstoreaccount1/uploads/a9813be7-7d2e-45d9-b391-32e9bb668e1c-1774737527633.pdf?sv=2026-02-06&st=2026-03-28T22%3A23%3A47Z&se=2026-03-28T23%3A38%3A47Z&sr=b&sp=cw&sig=ZpHy6wKc41vO7m9n0QQQ4cX8EJ1%2B%2BxR46dhlCO0JikA%3D HTTP/1.1" 201 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=RowKey%20eq%20%27a9813be7-7d2e-45d9-b391-32e9bb668e1c%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "GET /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "PATCH /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 204 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "GET /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=RowKey%20eq%20%27a9813be7-7d2e-45d9-b391-32e9bb668e1c%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:47 +0000] "PATCH /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 204 -
-172.17.0.1 - - [28/Mar/2026:22:38:57 +0000] "GET /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:38:57 +0000] "PATCH /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 204 -
-172.17.0.1 - - [28/Mar/2026:22:39:07 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=PartitionKey%20eq%20%27live.com_somp%40outlook.com%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:39:07 +0000] "GET /devstoreaccount1/UploadRequestsV2()?$filter=PartitionKey%20eq%20%27live.com_somp%40outlook.com%27 HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:40:27 +0000] "GET /devstoreaccount1/UploadRequestsV2(PartitionKey='live.com_somp%40outlook.com',RowKey='a9813be7-7d2e-45d9-b391-32e9bb668e1c') HTTP/1.1" 200 -
-172.17.0.1 - - [28/Mar/2026:22:40:27 +0000] "GET /devstoreaccount1/uploads/a9813be7-7d2e-45d9-b391-32e9bb668e1c-1774737527633.pdf?sv=2026-02-06&st=2026-03-28T22%3A25%3A27Z&se=2026-03-28T23%3A40%3A27Z&sr=b&sp=r&sig=fntfVsOQORk63AGQP74p6E%2B3k4dli1SDRTq2jCjnBeg%3D HTTP/1.1" 200 537702
-172.17.0.1 - - [28/Mar/2026:22:40:27 +0000] "GET /favicon.ico HTTP/1.1" 400 -
+
 
 ```
 
