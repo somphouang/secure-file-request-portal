@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# azurite storage emulator
+__queuestorage__
+__blobstorage__*
+__azurite_db_*

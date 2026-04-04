@@ -96,7 +96,13 @@ const dict = {
     click_drag: "Click to browse or drag & drop a file here.",
     encrypting: "Encrypting and Transmitting...",
     submit_doc: "Submit Document",
-    allow_multiple: "Allow Multiple Files"
+    allow_multiple: "Allow Multiple Files",
+    download_portal_title: "Secure Download Portal",
+    download_portal_desc: "Enter passcode sent by the requestor to retrieve the file(s).",
+    validate_passcode: "Validate Passcode",
+    available_files: "Available files for download:",
+    no_files_available: "No files are currently ready for download.",
+    download_error: "Failed to generate download link. Check passcode or request status."
   },
   fr: {
     goc: "Gouvernement du Canada",
@@ -160,6 +166,12 @@ const dict = {
     click_drag: "Cliquez pour parcourir ou glissez-déposez un fichier ici.",
     encrypting: "Chiffrement et Transmission...",
     submit_doc: "Soumettre le Document",
-    allow_multiple: "Autoriser Multiples Fichiers"
+    allow_multiple: "Autoriser Multiples Fichiers",
+    download_portal_title: "Portail de Téléchargement Sécurisé",
+    download_portal_desc: "Entrez le code d'accès envoyé par le demandeur pour récupérer le(s) fichier(s).",
+    validate_passcode: "Valider le Code",
+    available_files: "Fichiers disponibles au téléchargement:",
+    no_files_available: "Aucun fichier n'est actuellement prêt au téléchargement.",
+    download_error: "Échec de la génération du lien de téléchargement. Vérifiez le code d'accès ou l'état de la demande."
   }
 };

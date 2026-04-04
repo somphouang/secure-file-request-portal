@@ -55,9 +55,81 @@ graph TD
     ReqUI -->|Downloads Clean Files| Blob
 ```
 
+## Key Features
+
+### 1. **Secure Upload Request Workflow**
+- Internal requestors create upload requests and send secure links to external uploaders
+- Auto-generated passcodes included in email notifications
+- Direct cloud upload with short-lived (1-hour) SAS tokens
+- No file storage on intermediate servers
+- Automated malware scanning with Assemblyline integration
+
+### 2. **Direct File Share & Download Workflow** (New)
+- Requestors can directly upload files and invite external downloaders
+- Auto-generated, encrypted passcodes for download access
+- Separate from traditional upload requests
+- Download completion tracking with automatic status updates
+- Bilingual email notifications with download links
+
+### 3. **Case Number Tracking** (New)
+- Every upload request and file share gets a unique 16-character case number
+- Format: `CASE-[8-char-timestamp][8-char-random]`
+- Included in all email subjects and bodies for reference
+- Central tracking for compliance and auditing
+- Example: `CASE-VR3KLY8ZA0G9J2X`
+
+### 4. **Download Completion Tracking** (New)
+- Automatic status updates when downloader completes file download
+- Status progression: `Pending` → `Uploaded` → `Scanning` → `Clean` → `Awaiting Download` → `Downloaded`
+- Requestor can see real-time download confirmation
+- Includes timestamp of when download was completed
+
+### 5. **Conditional File Sharing** (New)
+- **Share Button Visibility**: "Share" button only appears next to individual files that have been scanned and marked as "Clean"
+- **Status-Based Access**: Requestors cannot share files that are still scanning, pending, or marked as malicious
+- **Per-File Sharing**: When multiple files are uploaded, each clean file can be shared individually
+- **Shared Files Tracking**: Shared files appear in the "Shared Files" table with proper expiration dates and status tracking
+
+### 5. **Bilingual Support**
+- Full English and French interface
+- All email templates available in both languages
+- Case numbers and tracking info preserved across languages
+
+### 6. **Automated Uploader Passcodes** (New)
+- **Auto-Generated Secrets**: Uploader requests now automatically generate 18-character encrypted passcodes
+- **No Manual Entry**: Requestors no longer need to manually create or remember secrets
+- **Secure Hashing**: Passcodes are bcrypt-hashed before storage, plaintext only in emails
+- **Format**: Alphanumeric characters (similar to downloader passcodes but 18 chars vs 8 chars)
+
+### 7. **Multi-File Upload**
+- Requestors can allow uploaders to submit multiple files in a single request
+- Checkbox option in request creation
+- Individual file scanning with aggregated status
+- Uploader experience varies based on requestor's configuration
+
+### 8. **SharePoint Integration** (New)
+- **One-Click Upload**: "Share to SharePoint" button next to clean files
+- **Entra ID Authentication**: Uses requestor's Microsoft 365 identity for seamless SSO
+- **Microsoft Graph API**: Secure file upload to SharePoint Online
+- **Permission Requirements**: Requires `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes
+- **Default Location**: Uploads to the root Documents library of the user's default SharePoint site
+
+### 9. **Role-Based Security**
+- **Requestor**: Authenticated via Azure AD/Entra ID, creates requests and invites
+- **Uploader**: Public access via secure token, no authentication required
+- **Downloader**: Public access via secure token and passcode, no authentication required
+- **Zero Trust**: All requests validated with time-limited tokens
+
+### 10. **Audit & Compliance**
+- All transactions tracked with case numbers
+- Status lifecycle preserved for regulatory compliance
+- Email delivery logs include recipient, timestamp, and case number
+- Download completion timestamps recorded
+
 ## Security Posture
 - **Masked Storage**: Uploaders never see the actual destination container. They are provided a short-lived (1-hour) Shared Access Signature (SAS) token permitting write-only execution to a specific generated blob name.
 - **Quarantine Pipeline**: All files are placed in an isolated blob path until scanned and explicitly marked as `Clean` by Assemblyline.
+- **Passcode Security**: Passcodes are auto-generated (8 characters), bcrypt-hashed in storage, and sent only in email plaintext
 
 ## Environment Variables Configuration
 
@@ -121,6 +193,103 @@ You can run a Docker container for Azurite via Ubuntu WSL:
 2. **Frontend**:
    `cd frontend && npm run dev`
 
+## API Endpoints
+
+### New Endpoints (Download Completion Tracking)
+
+#### Mark Upload Download Complete
+```
+POST /api/public/requests/:token/mark-download-complete
+```
+Called automatically by the downloader's browser after initiating file download.
+- **Purpose**: Records download completion and updates status to "Downloaded"
+- **Parameters**: Token (from download URL)
+- **Response**: `{ success: true, downloadCompletedAt: timestamp }`
+- **Status Updates**: `Awaiting Download` → `Downloaded`
+
+#### Mark Share Download Complete
+```
+POST /api/public/shares/:token/mark-download-complete
+```
+Called automatically when a file share downloader completes download.
+- **Purpose**: Records completion for file shares and updates status
+- **Parameters**: Token (from share download URL)
+- **Response**: `{ success: true, downloadCompletedAt: timestamp }`
+- **Status Updates**: `Awaiting Download` → `Downloaded`
+
+### Existing Core Endpoints
+
+#### Requestor - Create Upload Request
+```
+POST /api/requests
+```
+Creates a new upload request with auto-generated 18-character passcode.
+- **Body**: `{ uploaderEmail: string, requestedFileTypes?: string, expirationDays?: number, allowMultiple?: boolean }`
+- **Auto-Generated**: 18-character alphanumeric passcode (bcrypt-hashed for storage)
+- **Response**: `{ message, token, caseNumber, request }`
+- **Email**: Contains upload link and auto-generated passcode
+
+#### Requestor - Create File Share Upload
+```
+POST /api/shares/upload
+```
+Initiates file upload for direct sharing with downloader. Now accepts expiration days.
+- **Body**: `{ filename: string, expirationDays?: number }` (defaults to 7)
+- **Response**: `{ token, url, blobName }`
+
+#### Requestor - Invite Downloader from Upload
+```
+POST /api/requests/:token/invite-downloader
+```
+Creates a new share record from an uploaded file and sends download invitation. Only works when file status is "Clean".
+- **Body**: `{ downloaderEmail: string, blobName?: string }`
+- **Response**: `{ message, shareToken, caseNumber }`
+- **Requirements**: File must be scanned and marked as "Clean"
+- **Creates**: New entry in DownloadShares table with expiration tracking
+
+#### Uploader - Get Request Details
+```
+GET /api/public/requests/:token
+```
+Public endpoint for uploader to access request details.
+
+#### Uploader - Request SAS Token
+```
+GET /api/public/requests/:token/sas
+```
+Returns time-limited, write-only SAS token for secure upload.
+
+#### Uploader - Confirm Upload
+```
+POST /api/public/requests/:token/confirm
+```
+Confirms file upload and triggers malware scanning.
+
+#### Downloader - Access File Share
+```
+GET /api/public/shares/:token
+```
+Public endpoint for downloader to access share details.
+
+#### Downloader - Validate Passcode
+```
+POST /api/public/shares/:token/validate-passcode
+```
+Validates the passcode and returns download SAS token.
+- **Body**: `{ passcode: string }`
+
+#### Downloader - Get Download SAS
+```
+GET /api/public/shares/:token/sas
+```
+Returns time-limited, read-only SAS token for secure download.
+
+#### Requestor - Refresh Request List
+```
+GET /api/requests
+```
+Authenticated endpoint to list all user's requests with current statuses.
+
 # Secure File Portal Verification Walkthrough
 
 The Secure File Portal Assistant application is now completely developed. It includes the React frontend, the Express backend, and mock services for Azure Storage, Azure Data Tables, GCNotify, and Assemblyline to allow for complete local verification without requiring cloud keys immediately.
@@ -136,6 +305,42 @@ The Secure File Portal Assistant application is now completely developed. It inc
   - `azureTableService.js`: Lightweight NoSQL tracking for request stages and file lifecycle tracking.
   - `gcNotifyService.js`: Wrapper for GCNotify emails (currently mocks to console limit API usage during testing).
   - `assemblylineService.js`: Simulates a 10-second quarantine and scan, marking the file clean automatically.
+
+1. Automated Uploader Passcodes ✅
+   - **Frontend Changes**: Removed Secret Field from the uploader request form
+     - Eliminated the manual secret input field
+     - Removed secret from newRequest state object
+     - Requestors now only enter uploader email, file types, expiration, and multi-file option
+   - **Backend Changes**: Auto-Generation of Secrets
+     - Added auto-generation function that creates 18-character alphanumeric secrets
+     - Secrets are bcrypt-hashed before storage
+     - Auto-generated secret is sent in the uploader invitation email
+   - **Security Benefits**:
+     - Consistent Security: Same bcrypt hashing as downloader passcodes
+     - No Manual Errors: Eliminates typos or weak manual passcodes
+     - 18-Character Length: Stronger than the 8-character downloader passcodes
+     - Seamless UX: Requestors don't need to think about or remember secrets
+2. SharePoint Integration ✅
+   - **Frontend Changes**: Added SharePoint upload capability
+     - New "Share to SharePoint" button next to the "Share" button for clean files
+     - Integrated with Microsoft Graph API for SharePoint uploads
+     - Uses requestor's existing MSAL token with expanded scopes
+   - **Microsoft Graph API Integration**:
+     - One-Click Upload: Downloads clean file from Azure Blob Storage
+     - Seamless SSO: Uses requestor's Entra ID token (no additional login required)
+     - Default Location: Uploads to root Documents library of user's default SharePoint site
+     - Required Permissions: `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes
+   - **Error Handling**: Clear error messages for permission or connectivity issues
+   - **Technical Validation**:
+     - ✅ TypeScript Compilation: No errors in frontend or backend
+     - ✅ Build Success: Both projects build successfully
+     - ✅ Security Audit: 0 high/critical vulnerabilities
+     - ✅ API Integration: Microsoft Graph API properly integrated
+   - **User Experience Flow**:
+     - File uploaded and scanned → Status: "Clean"
+     - Requestor sees "Share" and "Share to SharePoint" buttons
+     - Click "Share to SharePoint" → File automatically uploaded to SharePoint
+     - Success confirmation displayed
 
 ## How to Test and Verify
 
@@ -328,6 +533,134 @@ Once uploading are done, the uploader cannot upload anymore
 ![alt text](img/uploading_multiple_files_done_en.png)
 ![alt text](img/uploading_multiple_files_done_fr.png)
 ![alt text](image.png)
+
+---
+
+## New Features - Direct File Share & Download Workflow
+
+### Direct File Upload and Share (Requestor → Downloader)
+
+This feature allows requestors to directly upload files and send download invitations to external recipients with auto-generated passcodes.
+
+#### Creating a Direct File Share Request (English)
+Requestor can now directly upload a file and invite a downloader in a single unified form:
+![alt text](img/create_file_share_unified_en.png)
+
+#### Creating a Direct File Share Request (French)
+Bilingual support for creating file shares with all fields in one form:
+![alt text](img/create_file_share_unified_fr.png)
+
+#### Downloader Accessing File Share (English)
+External downloader receives email with unique passcode link and can access shared files:
+![alt text](img/downloader_share_access_en.png)
+
+#### Downloader Accessing File Share (French)
+Bilingual support for downloader access:
+![alt text](img/downloader_share_access_fr.png)
+
+#### Downloader Entering Passcode (English)
+The downloader enters the auto-generated, encrypted passcode sent via email:
+![alt text](img/downloader_passcode_enter_en.png)
+
+#### Downloader Entering Passcode (French)
+Bilingual passcode entry:
+![alt text](img/downloader_passcode_enter_fr.png)
+
+#### Download Share Email Notification (English)
+Requestor and downloader receive bilingual notifications with case number and download link:
+![alt text](img/download_share_email_en.png)
+
+#### Download Share Email Notification (French)
+French version of email notification with bilingual content:
+![alt text](img/download_share_email_fr.png)
+
+---
+
+### Case Number Tracking
+
+All file requests and shares now include unique 16-character case numbers for audit and tracking purposes.
+
+#### Requestor Dashboard - Case Numbers in Upload Requests (English)
+Case number displayed prominently in the first column of the requests table:
+![alt text](img/dashboard_case_numbers_requests_en.png)
+
+#### Requestor Dashboard - Case Numbers in Uploads (French)
+Dashboard view showing case numbers in French:
+![alt text](img/dashboard_case_numbers_requests_fr.png)
+
+#### Requestor Dashboard - Case Numbers in Shared Files (English)
+Case numbers shown in the file share table for tracking shared downloads:
+![alt text](img/dashboard_case_numbers_shares_en.png)
+
+#### Requestor Dashboard - Case Numbers in Shared Files (French)
+File share table with case numbers in French:
+![alt text](img/dashboard_case_numbers_shares_fr.png)
+
+#### Case Number Format Reference
+Case numbers follow the format: `CASE-[8-char-timestamp][8-char-random]`
+- Example: `CASE-VR3KLY8ZA0G9J2X`
+- Length: 16 characters maximum
+- Included in: Email subjects, email bodies, and all audit logs
+- Purpose: Unique tracking for compliance, auditing, and support reference
+
+---
+
+### Download Completion Tracking
+
+Once a downloader accesses and downloads a file, the status automatically updates to reflect completion.
+
+#### Awaiting Download Status (English)
+After inviting a downloader, the request shows "Awaiting Download" status:
+![alt text](img/status_awaiting_download_en.png)
+
+#### Awaiting Download Status (French)
+French interface showing awaiting download status:
+![alt text](img/status_awaiting_download_fr.png)
+
+#### Downloaded Status - Completion (English)
+After downloader completes download, status updates to "Downloaded" with green checkmark:
+![alt text](img/status_downloaded_en.png)
+
+#### Downloaded Status - Completion (French)
+French interface showing completed download status:
+![alt text](img/status_downloaded_fr.png)
+
+#### Complete Status Lifecycle (English)
+Visual representation of status progression through the entire workflow:
+![alt text](img/status_lifecycle_en.png)
+
+#### Complete Status Lifecycle (French)
+Status lifecycle in French:
+![alt text](img/status_lifecycle_fr.png)
+
+#### Dashboard with Mixed Statuses (English)
+Requestor dashboard showing multiple requests at different stages (Pending, Uploaded, Scanning, Clean, Awaiting Download, Downloaded):
+![alt text](img/dashboard_mixed_statuses_en.png)
+
+#### Dashboard with Mixed Statuses (French)
+Dashboard showing various statuses in French:
+![alt text](img/dashboard_mixed_statuses_fr.png)
+
+---
+
+## Feature Comparison Table
+
+| Feature | Traditional Upload Request | Direct File Share |
+|---------|---------------------------|-------------------|
+| **Initiated By** | Requestor | Requestor |
+| **Recipient Role** | Uploader (receives upload link) | Downloader (receives download link) |
+| **Action Required** | Upload a file | Download a pre-uploaded file |
+| **Security** | SAS token write-only, auto-generated 18-char passcode | Passcode + secure download link |
+| **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
+| **Tracking** | Case number, status progression | Case number, download completion |
+| **Expiration** | Configurable (1,7,14,30 days) | Configurable (1,7,14,30 days) |
+| **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
+| **File Storage** | Azure Blob Storage | Azure Blob Storage |
+| **Metadata** | UploadRequests table | DownloadShares table |
+| **Sharing Condition** | Only when file status = "Clean" | Only when file status = "Clean" |
+| **SharePoint Integration** | Available for clean files | N/A |
+
+---
 
 ### Troubleshooting Logs
 

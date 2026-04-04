@@ -5,6 +5,8 @@ import { useLanguage, t } from './i18n';
 
 import RequestorDashboard from './RequestorDashboard';
 import UploaderView from './UploaderView';
+import DownloaderView from './DownloaderView';
+import ShareDownloadView from './ShareDownloadView';
 
 export default function App() {
   const { instance, accounts } = useMsal();
@@ -95,6 +97,8 @@ export default function App() {
             </>
           } />
           <Route path="/upload/:token" element={<UploaderView />} />
+          <Route path="/download/:token" element={<DownloaderView />} />
+          <Route path="/download-share/:token" element={<ShareDownloadView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
