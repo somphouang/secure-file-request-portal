@@ -55,9 +55,62 @@ graph TD
     ReqUI -->|Downloads Clean Files| Blob
 ```
 
+## Key Features
+
+### 1. **Secure Upload Request Workflow**
+- Internal requestors create upload requests and send secure links to external uploaders
+- Auto-generated passcodes included in email notifications
+- Direct cloud upload with short-lived (1-hour) SAS tokens
+- No file storage on intermediate servers
+- Automated malware scanning with Assemblyline integration
+
+### 2. **Direct File Share & Download Workflow** (New)
+- Requestors can directly upload files and invite external downloaders
+- Auto-generated, encrypted passcodes for download access
+- Separate from traditional upload requests
+- Download completion tracking with automatic status updates
+- Bilingual email notifications with download links
+
+### 3. **Case Number Tracking** (New)
+- Every upload request and file share gets a unique 16-character case number
+- Format: `CASE-[8-char-timestamp][8-char-random]`
+- Included in all email subjects and bodies for reference
+- Central tracking for compliance and auditing
+- Example: `CASE-VR3KLY8ZA0G9J2X`
+
+### 4. **Download Completion Tracking** (New)
+- Automatic status updates when downloader completes file download
+- Status progression: `Pending` → `Uploaded` → `Scanning` → `Clean` → `Awaiting Download` → `Downloaded`
+- Requestor can see real-time download confirmation
+- Includes timestamp of when download was completed
+
+### 5. **Bilingual Support**
+- Full English and French interface
+- All email templates available in both languages
+- Case numbers and tracking info preserved across languages
+
+### 6. **Multi-File Upload**
+- Requestors can allow uploaders to submit multiple files in a single request
+- Checkbox option in request creation
+- Individual file scanning with aggregated status
+- Uploader experience varies based on requestor's configuration
+
+### 7. **Role-Based Security**
+- **Requestor**: Authenticated via Azure AD/Entra ID, creates requests and invites
+- **Uploader**: Public access via secure token, no authentication required
+- **Downloader**: Public access via secure token and passcode, no authentication required
+- **Zero Trust**: All requests validated with time-limited tokens
+
+### 8. **Audit & Compliance**
+- All transactions tracked with case numbers
+- Status lifecycle preserved for regulatory compliance
+- Email delivery logs include recipient, timestamp, and case number
+- Download completion timestamps recorded
+
 ## Security Posture
 - **Masked Storage**: Uploaders never see the actual destination container. They are provided a short-lived (1-hour) Shared Access Signature (SAS) token permitting write-only execution to a specific generated blob name.
 - **Quarantine Pipeline**: All files are placed in an isolated blob path until scanned and explicitly marked as `Clean` by Assemblyline.
+- **Passcode Security**: Passcodes are auto-generated (8 characters), bcrypt-hashed in storage, and sent only in email plaintext
 
 ## Environment Variables Configuration
 
@@ -120,6 +173,97 @@ You can run a Docker container for Azurite via Ubuntu WSL:
    `cd backend && npm run build && npm start`
 2. **Frontend**:
    `cd frontend && npm run dev`
+
+## API Endpoints
+
+### New Endpoints (Download Completion Tracking)
+
+#### Mark Upload Download Complete
+```
+POST /api/public/requests/:token/mark-download-complete
+```
+Called automatically by the downloader's browser after initiating file download.
+- **Purpose**: Records download completion and updates status to "Downloaded"
+- **Parameters**: Token (from download URL)
+- **Response**: `{ success: true, downloadCompletedAt: timestamp }`
+- **Status Updates**: `Awaiting Download` → `Downloaded`
+
+#### Mark Share Download Complete
+```
+POST /api/public/shares/:token/mark-download-complete
+```
+Called automatically when a file share downloader completes download.
+- **Purpose**: Records completion for file shares and updates status
+- **Parameters**: Token (from share download URL)
+- **Response**: `{ success: true, downloadCompletedAt: timestamp }`
+- **Status Updates**: `Awaiting Download` → `Downloaded`
+
+### Existing Core Endpoints
+
+#### Requestor - Create Upload Request
+```
+POST /api/requests
+```
+Creates a new upload request and sends email to uploader.
+- **Body**: `{ uploaderEmail: string, allowMultipleFiles?: boolean }`
+- **Response**: `{ token, caseNumber, expiresAt, ... }`
+
+#### Requestor - Create File Share
+```
+POST /api/requests/:token/upload-file-for-sharing
+```
+Initiates file upload for direct sharing with downloader.
+
+#### Requestor - Invite Downloader
+```
+POST /api/requests/:token/invite-downloader-to-share
+```
+Invites external downloader with auto-generated passcode.
+- **Body**: `{ downloaderEmail: string, fileName: string }`
+- **Response**: `{ shareToken, caseNumber, passcode (hashed), ... }`
+
+#### Uploader - Get Request Details
+```
+GET /api/public/requests/:token
+```
+Public endpoint for uploader to access request details.
+
+#### Uploader - Request SAS Token
+```
+GET /api/public/requests/:token/sas
+```
+Returns time-limited, write-only SAS token for secure upload.
+
+#### Uploader - Confirm Upload
+```
+POST /api/public/requests/:token/confirm
+```
+Confirms file upload and triggers malware scanning.
+
+#### Downloader - Access File Share
+```
+GET /api/public/shares/:token
+```
+Public endpoint for downloader to access share details.
+
+#### Downloader - Validate Passcode
+```
+POST /api/public/shares/:token/validate-passcode
+```
+Validates the passcode and returns download SAS token.
+- **Body**: `{ passcode: string }`
+
+#### Downloader - Get Download SAS
+```
+GET /api/public/shares/:token/sas
+```
+Returns time-limited, read-only SAS token for secure download.
+
+#### Requestor - Refresh Request List
+```
+GET /api/requests
+```
+Authenticated endpoint to list all user's requests with current statuses.
 
 # Secure File Portal Verification Walkthrough
 
@@ -328,6 +472,131 @@ Once uploading are done, the uploader cannot upload anymore
 ![alt text](img/uploading_multiple_files_done_en.png)
 ![alt text](img/uploading_multiple_files_done_fr.png)
 ![alt text](image.png)
+
+---
+
+## New Features - Direct File Share & Download Workflow
+
+### Direct File Upload and Share (Requestor → Downloader)
+
+This feature allows requestors to directly upload files and send download invitations to external recipients with auto-generated passcodes.
+
+#### Creating a Direct File Share Request (English)
+Requestor can now directly upload a file and invite a downloader in a single workflow:
+![alt text](img/create_file_share_en.png)
+
+#### Creating a Direct File Share Request (French)
+Bilingual support for creating file shares:
+![alt text](img/create_file_share_fr.png)
+
+#### Downloader Accessing File Share (English)
+External downloader receives email with unique passcode link and can access shared files:
+![alt text](img/downloader_share_access_en.png)
+
+#### Downloader Accessing File Share (French)
+Bilingual support for downloader access:
+![alt text](img/downloader_share_access_fr.png)
+
+#### Downloader Entering Passcode (English)
+The downloader enters the auto-generated, encrypted passcode sent via email:
+![alt text](img/downloader_passcode_enter_en.png)
+
+#### Downloader Entering Passcode (French)
+Bilingual passcode entry:
+![alt text](img/downloader_passcode_enter_fr.png)
+
+#### Download Share Email Notification (English)
+Requestor and downloader receive bilingual notifications with case number and download link:
+![alt text](img/download_share_email_en.png)
+
+#### Download Share Email Notification (French)
+French version of email notification with bilingual content:
+![alt text](img/download_share_email_fr.png)
+
+---
+
+### Case Number Tracking
+
+All file requests and shares now include unique 16-character case numbers for audit and tracking purposes.
+
+#### Requestor Dashboard - Case Numbers in Upload Requests (English)
+Case number displayed prominently in the first column of the requests table:
+![alt text](img/dashboard_case_numbers_requests_en.png)
+
+#### Requestor Dashboard - Case Numbers in Uploads (French)
+Dashboard view showing case numbers in French:
+![alt text](img/dashboard_case_numbers_requests_fr.png)
+
+#### Requestor Dashboard - Case Numbers in Shared Files (English)
+Case numbers shown in the file share table for tracking shared downloads:
+![alt text](img/dashboard_case_numbers_shares_en.png)
+
+#### Requestor Dashboard - Case Numbers in Shared Files (French)
+File share table with case numbers in French:
+![alt text](img/dashboard_case_numbers_shares_fr.png)
+
+#### Case Number Format Reference
+Case numbers follow the format: `CASE-[8-char-timestamp][8-char-random]`
+- Example: `CASE-VR3KLY8ZA0G9J2X`
+- Length: 16 characters maximum
+- Included in: Email subjects, email bodies, and all audit logs
+- Purpose: Unique tracking for compliance, auditing, and support reference
+
+---
+
+### Download Completion Tracking
+
+Once a downloader accesses and downloads a file, the status automatically updates to reflect completion.
+
+#### Awaiting Download Status (English)
+After inviting a downloader, the request shows "Awaiting Download" status:
+![alt text](img/status_awaiting_download_en.png)
+
+#### Awaiting Download Status (French)
+French interface showing awaiting download status:
+![alt text](img/status_awaiting_download_fr.png)
+
+#### Downloaded Status - Completion (English)
+After downloader completes download, status updates to "Downloaded" with green checkmark:
+![alt text](img/status_downloaded_en.png)
+
+#### Downloaded Status - Completion (French)
+French interface showing completed download status:
+![alt text](img/status_downloaded_fr.png)
+
+#### Complete Status Lifecycle (English)
+Visual representation of status progression through the entire workflow:
+![alt text](img/status_lifecycle_en.png)
+
+#### Complete Status Lifecycle (French)
+Status lifecycle in French:
+![alt text](img/status_lifecycle_fr.png)
+
+#### Dashboard with Mixed Statuses (English)
+Requestor dashboard showing multiple requests at different stages (Pending, Uploaded, Scanning, Clean, Awaiting Download, Downloaded):
+![alt text](img/dashboard_mixed_statuses_en.png)
+
+#### Dashboard with Mixed Statuses (French)
+Dashboard showing various statuses in French:
+![alt text](img/dashboard_mixed_statuses_fr.png)
+
+---
+
+## Feature Comparison Table
+
+| Feature | Traditional Upload Request | Direct File Share |
+|---------|---------------------------|-------------------|
+| **Initiated By** | Requestor | Requestor |
+| **Recipient Role** | Uploader (receives upload link) | Downloader (receives download link) |
+| **Action Required** | Upload a file | Download a pre-uploaded file |
+| **Security** | SAS token write-only, passcode not needed | Passcode + secure download link |
+| **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
+| **Tracking** | Case number, status progression | Case number, download completion |
+| **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
+| **File Storage** | Azure Blob Storage | Azure Blob Storage |
+| **Metadata** | UploadRequests table | DownloadShares table |
+
+---
 
 ### Troubleshooting Logs
 

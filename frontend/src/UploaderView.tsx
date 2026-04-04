@@ -14,6 +14,8 @@ interface RequestInfo {
   blobUri?: string | null;
   allowMultiple?: boolean;
   isClosed?: boolean;
+  caseNumber?: string;
+  downloadCompletedAt?: string;
 }
 
 export default function UploaderView() {
@@ -122,6 +124,11 @@ export default function UploaderView() {
     <div>
       <h1 id="main-content">{t('portal_title', lang)}</h1>
       <p>{t('portal_desc', lang)}</p>
+      {requestInfo?.caseNumber && (
+        <div style={{ marginBottom: '1em', padding: '1em', backgroundColor: '#f0f0f0', borderLeft: '4px solid #0066cc' }}>
+          <strong>Case Number:</strong> {requestInfo.caseNumber}
+        </div>
+      )}
 
       {status === 'ready' && (
         <fieldset>

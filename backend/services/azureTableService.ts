@@ -8,6 +8,12 @@ const tableClient = TableClient.fromConnectionString(connectionString, tableName
     allowInsecureConnection: true
 });
 
+const shareTableName = process.env.AZURE_SHARE_TABLE_NAME || 'DownloadShares';
+
+const shareTableClient = TableClient.fromConnectionString(connectionString, shareTableName, {
+    allowInsecureConnection: true
+});
+
 export interface UploadRequestRecord {
     uploaderEmail: string;
     requestedFileTypes: string;
@@ -20,9 +26,27 @@ export interface UploadRequestRecord {
     allowMultiple?: boolean;
     fileStatuses?: string;
     isClosed?: boolean;
+    downloaderEmail?: string;
+    downloadSecretHash?: string;
+    caseNumber: string;
+    sharedForDownload?: boolean;
+    downloadCompletedAt?: Date;
+}
+
+export interface DownloadShareRecord {
+    status: string;
+    blobUri?: string;
+    originalFilename: string;
+    createdAt: Date;
+    expiresAt: Date;
+    downloadSecretHash?: string;
+    downloaderEmail?: string;
+    caseNumber: string;
+    downloadCompletedAt?: Date;
 }
 
 export type UploadRequest = TableEntity<UploadRequestRecord>;
+export type DownloadShare = TableEntity<DownloadShareRecord>;
 
 export async function initTable(): Promise<void> {
     try {
@@ -33,6 +57,21 @@ export async function initTable(): Promise<void> {
             console.error('Error creating table:', error);
         }
     }
+
+    try {
+        await shareTableClient.createTable();
+        console.log(`Table ${shareTableName} created or already exists.`);
+    } catch (error: any) {
+        if (error.statusCode !== 409) {
+            console.error('Error creating share table:', error);
+        }
+    }
+}
+
+export function generateCaseNumber(): string {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+    return `CASE-${timestamp}${random}`.substring(0, 16);
 }
 
 export async function createUploadRequest(
@@ -44,6 +83,7 @@ export async function createUploadRequest(
     allowMultiple: boolean = false
 ): Promise<Partial<UploadRequest>> {
     const token = uuidv4();
+    const caseNumber = generateCaseNumber();
     const entity: any = {
         partitionKey: requestorEmail,
         rowKey: token,
@@ -53,7 +93,8 @@ export async function createUploadRequest(
         secretHash: secretHash || '',
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
-        allowMultiple
+        allowMultiple,
+        caseNumber
     };
     
     console.log('Inserting entity:', JSON.stringify(entity, null, 2));
@@ -108,3 +149,73 @@ export async function getRequestsByRequestor(requestorEmail: string): Promise<Up
     }
     return requests;
 }
+
+export async function createDownloadShare(
+    requestorEmail: string,
+    token: string,
+    blobName: string,
+    originalFilename: string,
+    expirationDays: number = 7
+): Promise<Partial<DownloadShare>> {
+    const caseNumber = generateCaseNumber();
+    const entity: any = {
+        partitionKey: requestorEmail,
+        rowKey: token,
+        status: 'Pending',
+        originalFilename,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
+        caseNumber
+    };
+
+    try {
+        await shareTableClient.createEntity(entity);
+        return entity;
+    } catch (error: any) {
+        console.error('Error creating share entity:', error);
+        throw error;
+    }
+}
+
+export async function getDownloadShare(requestorEmail: string, token: string): Promise<DownloadShare | null> {
+    try {
+        return await shareTableClient.getEntity<DownloadShare>(requestorEmail, token);
+    } catch (e) {
+        return null;
+    }
+}
+
+export async function updateDownloadShare(requestorEmail: string, token: string, updates: Partial<DownloadShare>): Promise<DownloadShare> {
+    try {
+        const entity = await shareTableClient.getEntity<DownloadShare>(requestorEmail, token);
+        const updatedEntity = { ...entity, ...updates };
+        await shareTableClient.updateEntity(updatedEntity, 'Merge');
+        return updatedEntity;
+    } catch (error) {
+        console.error('Error updating share entity:', error);
+        throw error;
+    }
+}
+
+export async function getDownloadSharesByRequestor(requestorEmail: string): Promise<DownloadShare[]> {
+    const shares: DownloadShare[] = [];
+    const entities = shareTableClient.listEntities<DownloadShare>({
+        queryOptions: { filter: `PartitionKey eq '${requestorEmail}'` }
+    });
+    for await (const entity of entities) {
+        shares.push(entity);
+    }
+    return shares;
+}
+
+export async function getDownloadShareByToken(token: string): Promise<DownloadShare | null> {
+    const entities = shareTableClient.listEntities<DownloadShare>({
+        queryOptions: { filter: `RowKey eq '${token}'` }
+    });
+    
+    for await (const entity of entities) {
+        return entity;
+    }
+    return null;
+}
+

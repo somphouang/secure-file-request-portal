@@ -106,3 +106,10 @@ Thumbs.db
 
 # Project Specific
 bulk-data.ndjson
+__azurite_db_blob__.json
+__azurite_db_blob_extent__.json
+__azurite_db_queue__.json
+__azurite_db_queue_extent__.json
+__azurite_db_table__.json
+AzuriteConfig
+__blobstorage__/8c2ff730-4a78-49c9-819d-9264c59926af

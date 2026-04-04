@@ -50,11 +50,27 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
 app.post('/api/requests', authMiddleware, uploadController.createRequest);
 app.get('/api/requests', authMiddleware, uploadController.listRequestorUploads);
 app.get('/api/requests/:token/download', authMiddleware, uploadController.generateDownloadSas);
+app.post('/api/requests/:token/invite-downloader', authMiddleware, uploadController.inviteDownloader);
+
+// File sharing endpoints
+app.post('/api/shares/upload', authMiddleware, uploadController.uploadFileForSharing);
+app.post('/api/shares/confirm', authMiddleware, uploadController.confirmShareUpload);
+app.get('/api/shares', authMiddleware, uploadController.getDownloadShares);
+app.post('/api/shares/:token/invite', authMiddleware, uploadController.inviteDownloaderToShare);
+
 app.get('/api/public/requests/:token', uploadController.getRequestInfo);
 app.post('/api/public/requests/:token/validate-secret', uploadController.validateSecret);
+app.post('/api/public/requests/:token/validate-download', uploadController.validateDownloadSecret);
+app.get('/api/public/requests/:token/download', uploadController.generateDownloadSasForDownloader);
+app.post('/api/public/requests/:token/mark-download-complete', uploadController.markDownloadComplete);
 app.post('/api/public/requests/:token/sas', uploadController.generateUploadSas);
 app.post('/api/public/requests/:token/confirm', uploadController.confirmUpload);
 app.post('/api/public/requests/:token/complete', uploadController.closeRequest);
+
+app.get('/api/public/shares/:token', uploadController.getShareInfo);
+app.post('/api/public/shares/:token/validate-download', uploadController.validateShareDownloadSecret);
+app.get('/api/public/shares/:token/download', uploadController.generateShareDownloadSas);
+app.post('/api/public/shares/:token/mark-download-complete', uploadController.markShareDownloadComplete);
 
 const port = process.env.PORT || 3001;
 

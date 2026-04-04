@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import axios from 'axios';
-import { Plus, Download, RefreshCw } from 'lucide-react';
+import { Plus, Download, RefreshCw, Upload } from 'lucide-react';
 
 import { useMsal } from "@azure/msal-react";
 import { useLanguage, t } from './i18n';
@@ -17,6 +17,21 @@ interface UploadRequest {
   blobUri?: string;
   allowMultiple?: boolean;
   fileStatuses?: string;
+  caseNumber: string;
+  downloaderEmail?: string;
+  sharedForDownload?: boolean;
+  downloadCompletedAt?: string;
+}
+
+interface FileShare {
+  partitionKey: string;
+  rowKey: string;
+  originalFilename: string;
+  status: string;
+  expiresAt: string;
+  blobUri?: string;
+  downloaderEmail?: string;
+  caseNumber: string;
 }
 
 export default function RequestorDashboard() {
@@ -39,7 +54,9 @@ export default function RequestorDashboard() {
   };
 
   const [requests, setRequests] = useState<UploadRequest[]>([]);
+  const [shares, setShares] = useState<FileShare[]>([]);
   const [showConfig, setShowConfig] = useState(false);
+  const [showShareForm, setShowShareForm] = useState(false);
   const [newRequest, setNewRequest] = useState({ 
     uploaderEmail: '', 
     requestedFileTypes: 'pdf,xlsx',
@@ -47,10 +64,13 @@ export default function RequestorDashboard() {
     secret: '',
     allowMultiple: false
   });
+  const [shareFile, setShareFile] = useState<File | null>(null);
+  const [uploadingShare, setUploadingShare] = useState(false);
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     fetchRequests();
+    fetchShares();
   }, [accounts]); 
 
   const fetchRequests = async () => {
@@ -60,6 +80,16 @@ export default function RequestorDashboard() {
       setRequests(data);
     } catch (error) {
       console.error('Failed to fetch requests', error);
+    }
+  };
+
+  const fetchShares = async () => {
+    try {
+      const config = await getAxiosConfig();
+      const { data } = await axios.get<FileShare[]>(`${API_BASE}/shares`, config);
+      setShares(data);
+    } catch (error) {
+      console.error('Failed to fetch shares', error);
     }
   };
 
@@ -90,6 +120,80 @@ export default function RequestorDashboard() {
     }
   };
 
+  const inviteDownloader = async (token: string) => {
+    const downloaderEmail = window.prompt('Downloader email (recipient for secure link):');
+    if (!downloaderEmail) return;
+
+    try {
+      const config = await getAxiosConfig();
+      await axios.post(`${API_BASE}/requests/${token}/invite-downloader`, { downloaderEmail }, config);
+      alert('Downloader invitation email sent successfully.');
+    } catch (error) {
+      console.error('Failed to send downloader invite', error);
+      alert('Failed to send downloader invite.');
+    }
+  };
+
+  const handleShareFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setShareFile(e.target.files[0]);
+    }
+  };
+
+  const uploadAndShareFile = async () => {
+    if (!shareFile) return;
+    setUploadingShare(true);
+
+    try {
+      const config = await getAxiosConfig();
+      
+      // Step 1: Get upload SAS
+      const sasRes = await axios.post<{ url: string; blobName: string; token: string }>(
+        `${API_BASE}/shares/upload`,
+        { filename: shareFile.name },
+        config
+      );
+      const { url, blobName, token } = sasRes.data;
+
+      // Step 2: Upload file to blob
+      await axios.put(url, shareFile, {
+        headers: {
+          'x-ms-blob-type': 'BlockBlob',
+          'Content-Type': shareFile.type || 'application/octet-stream'
+        }
+      });
+
+      // Step 3: Confirm upload
+      await axios.post(
+        `${API_BASE}/shares/confirm`,
+        { token, blobName, filename: shareFile.name },
+        config
+      );
+
+      // Step 4: Invite downloader
+      const downloaderEmail = window.prompt('Downloader email (recipient for secure link):');
+      if (downloaderEmail) {
+        await axios.post(
+          `${API_BASE}/shares/${token}/invite`,
+          { downloaderEmail },
+          config
+        );
+        alert('File uploaded! Downloader invitation sent.');
+      } else {
+        alert('File uploaded. You can invite a downloader later.');
+      }
+
+      setShareFile(null);
+      setShowShareForm(false);
+      fetchShares();
+    } catch (error) {
+      console.error('Upload error', error);
+      alert('Failed to upload file.');
+    } finally {
+      setUploadingShare(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'Pending': return <span className="badge badge-warning">{status}</span>;
@@ -97,6 +201,8 @@ export default function RequestorDashboard() {
       case 'Scanning': return <span className="badge badge-primary">{status}</span>;
       case 'Clean': return <span className="badge badge-success">{status}</span>;
       case 'Malicious': return <span className="badge badge-danger">{status}</span>;
+      case 'Awaiting Download': return <span className="badge badge-secondary">{status}</span>;
+      case 'Downloaded': return <span className="badge badge-success">✓ {status}</span>;
       default: return <span className="badge">{status}</span>;
     }
   };
@@ -199,6 +305,36 @@ export default function RequestorDashboard() {
         </fieldset>
       )}
 
+      <button className="btn btn-primary" onClick={() => setShowShareForm(!showShareForm)} aria-expanded={showShareForm} style={{ marginLeft: '10px' }}>
+        <Upload size={16} aria-hidden="true" style={{verticalAlign: '-3px', marginRight: '5px'}}/>
+        Share a File
+      </button>
+
+      {showShareForm && (
+        <fieldset style={{ marginTop: '1em' }}>
+          <legend>Upload and Share File</legend>
+          <div className="form-group">
+            <label htmlFor="shareFile">Select File to Share</label>
+            <input 
+              type="file" 
+              className="form-control"
+              id="shareFile"
+              onChange={handleShareFile}
+              required
+            />
+            {shareFile && <p style={{ marginTop: '0.5em' }}>Selected: {shareFile.name}</p>}
+          </div>
+          <div style={{ marginTop: '1.5em' }}>
+            <button className="btn btn-primary" onClick={uploadAndShareFile} disabled={!shareFile || uploadingShare}>
+              {uploadingShare ? 'Uploading...' : 'Upload and Share'}
+            </button>
+            <button type="button" className="btn btn-default" style={{ marginLeft: '10px' }} onClick={() => { setShowShareForm(false); setShareFile(null); }}>
+              Cancel
+            </button>
+          </div>
+        </fieldset>
+      )}
+
       <h2>{t('active_requests', lang)}</h2>
       <button className="btn btn-default" onClick={fetchRequests}>
         <RefreshCw size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> {t('refresh', lang)}
@@ -212,6 +348,7 @@ export default function RequestorDashboard() {
         <table className="table">
           <thead>
             <tr>
+              <th scope="col">Case Number</th>
               <th scope="col">{t('table_uploader', lang)}</th>
               <th scope="col">{t('table_type', lang)}</th>
               <th scope="col">{t('table_status', lang)}</th>
@@ -222,6 +359,7 @@ export default function RequestorDashboard() {
           <tbody>
             {requests.map(req => (
               <tr key={req.rowKey}>
+                <td><strong>{req.caseNumber}</strong></td>
                 <td>{req.uploaderEmail}</td>
                 <td>{req.requestedFileTypes.toUpperCase()}</td>
                 <td>{getStatusBadge(req.status)}</td>
@@ -240,9 +378,67 @@ export default function RequestorDashboard() {
                           </div>
                         );
                       })}
+                      <div style={{ marginTop: '8px' }}>
+                        <button className="btn btn-secondary" onClick={() => inviteDownloader(req.rowKey)}>
+                          Send downloader link
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <span>---</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h2 style={{ marginTop: '3em' }}>Shared Files</h2>
+      <button className="btn btn-default" onClick={fetchShares}>
+        <RefreshCw size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> Refresh
+      </button>
+
+      {shares.length === 0 ? (
+        <div className="alert alert-info" style={{ marginTop: '1em' }}>
+          No files have been shared yet.
+        </div>
+      ) : (
+        <table className="table" style={{ marginTop: '1em' }}>
+          <thead>
+            <tr>
+              <th scope="col">Case Number</th>
+              <th scope="col">Filename</th>
+              <th scope="col">Status</th>
+              <th scope="col">Downloader</th>
+              <th scope="col">Expires</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shares.map(share => (
+              <tr key={share.rowKey}>
+                <td><strong>{share.caseNumber}</strong></td>
+                <td>{share.originalFilename}</td>
+                <td>{getStatusBadge(share.status)}</td>
+                <td>{share.downloaderEmail || '--'}</td>
+                <td>{new Date(share.expiresAt).toLocaleDateString()}</td>
+                <td>
+                  {!share.downloaderEmail && share.blobUri ? (
+                    <button className="btn btn-small btn-info" onClick={() => {
+                      const email = window.prompt('Downloader email:');
+                      if (email) {
+                        axios.post(`${API_BASE}/shares/${share.rowKey}/invite`, { downloaderEmail: email }, { headers: { Authorization: `Bearer token` } })
+                          .then(() => { alert('Invitation sent!'); fetchShares(); })
+                          .catch(() => alert('Failed to send invitation'));
+                      }
+                    }}>
+                      Invite Downloader
+                    </button>
+                  ) : share.downloaderEmail ? (
+                    <span style={{ color: '#666' }}>Invited</span>
+                  ) : (
+                    <span style={{ color: '#999' }}>Pending upload</span>
                   )}
                 </td>
               </tr>
