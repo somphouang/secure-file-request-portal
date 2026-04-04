@@ -111,7 +111,7 @@ export default function RequestorDashboard() {
       fetchRequests();
     } catch (error) {
       console.error('Failed to create request', error);
-      alert('Error creating request. See console.');
+      alert(t('error_creating_request', lang));
     } finally {
       setLoading(false);
     }
@@ -122,8 +122,9 @@ export default function RequestorDashboard() {
       const config = await getAxiosConfig();
       const { data } = await axios.get<{ url: string }>(`${API_BASE}/requests/${token}/download${blobName ? `?filename=${encodeURIComponent(blobName)}` : ''}`, config);
       window.open(data.url, '_blank');
-    } catch (error) {
-      alert('Failed to get download link or file is not clean.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to get download link.';
+      alert(errorMessage);
     }
   };
 
@@ -153,15 +154,15 @@ export default function RequestorDashboard() {
         }
       });
       
-      alert('File successfully uploaded to SharePoint!');
+      alert(t('file_uploaded_sharepoint', lang));
     } catch (error) {
       console.error('Failed to share to SharePoint', error);
-      alert('Failed to upload file to SharePoint. Please check your permissions.');
+      alert(t('failed_upload_sharepoint', lang));
     }
   };
 
   const inviteDownloader = async (token: string, blobName?: string) => {
-    const downloaderEmail = window.prompt('Downloader email (recipient for secure link):');
+    const downloaderEmail = window.prompt(t('downloader_email_prompt', lang));
     if (!downloaderEmail) return;
 
     try {
@@ -170,11 +171,11 @@ export default function RequestorDashboard() {
         downloaderEmail,
         blobName 
       }, config);
-      alert('Downloader invitation email sent successfully. The file has been added to your Shared Files list.');
+      alert(t('invitation_sent', lang));
       fetchShares(); // Refresh the shares list to show the new share
     } catch (error) {
       console.error('Failed to send downloader invite', error);
-      alert('Failed to send downloader invite.');
+      alert(t('failed_send_invite', lang));
     }
   };
 
@@ -226,29 +227,44 @@ export default function RequestorDashboard() {
         config
       );
 
-      alert('File uploaded and downloader invitation sent successfully!');
+      alert(t('file_uploaded_invitation_sent', lang));
       setShareFile(null);
       setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '' });
       setShowShareForm(false);
       fetchShares();
     } catch (error) {
       console.error('Upload error', error);
-      alert('Failed to upload file and send invitation.');
+      alert(t('failed_upload_invitation', lang));
     } finally {
       setUploadingShare(false);
     }
   };
 
   const getStatusBadge = (status: string) => {
+    const translatedStatus = (() => {
+      switch(status) {
+        case 'Pending': return t('status_pending', lang);
+        case 'Uploaded': return t('status_uploaded', lang);
+        case 'Scanning': return t('status_scanning', lang);
+        case 'Clean': return t('status_clean', lang);
+        case 'Malicious': return t('status_malicious', lang);
+        case 'Awaiting Download': return t('status_awaiting_download', lang);
+        case 'Downloaded': return t('status_downloaded', lang);
+        case 'Ready': return t('status_ready', lang);
+        default: return status;
+      }
+    })();
+    
     switch(status) {
-      case 'Pending': return <span className="badge badge-warning">{status}</span>;
-      case 'Uploaded': return <span className="badge badge-info">{status}</span>;
-      case 'Scanning': return <span className="badge badge-primary">{status}</span>;
-      case 'Clean': return <span className="badge badge-success">{status}</span>;
-      case 'Malicious': return <span className="badge badge-danger">{status}</span>;
-      case 'Awaiting Download': return <span className="badge badge-secondary">{status}</span>;
-      case 'Downloaded': return <span className="badge badge-success">✓ {status}</span>;
-      default: return <span className="badge">{status}</span>;
+      case 'Pending': return <span className="badge badge-warning">{translatedStatus}</span>;
+      case 'Uploaded': return <span className="badge badge-info">{translatedStatus}</span>;
+      case 'Scanning': return <span className="badge badge-primary">{translatedStatus}</span>;
+      case 'Clean': return <span className="badge badge-success">{translatedStatus}</span>;
+      case 'Ready': return <span className="badge badge-success">{translatedStatus}</span>;
+      case 'Malicious': return <span className="badge badge-danger">{translatedStatus}</span>;
+      case 'Awaiting Download': return <span className="badge badge-secondary">{translatedStatus}</span>;
+      case 'Downloaded': return <span className="badge badge-success">✓ {translatedStatus}</span>;
+      default: return <span className="badge">{translatedStatus}</span>;
     }
   };
 
@@ -302,15 +318,15 @@ export default function RequestorDashboard() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="caseNumber">CASE Number</label>
-              <span className="hint-text">Optional: Enter custom case number for tracking. If not provided, a unique RQ-* number will be auto-generated.</span>
+              <label htmlFor="caseNumber">{t('case_number', lang)}</label>
+              <span className="hint-text">{t('case_number_hint', lang)}</span>
               <input 
                 type="text" 
                 className="form-control"
                 id="caseNumber"
                 value={newRequest.caseNumber}
                 onChange={e => setNewRequest({...newRequest, caseNumber: e.target.value})}
-                placeholder="e.g., INV-2024-001"
+                placeholder={t('case_number_placeholder', lang)}
               />
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
@@ -353,15 +369,15 @@ export default function RequestorDashboard() {
 
       <button className="btn btn-primary" onClick={() => setShowShareForm(!showShareForm)} aria-expanded={showShareForm} style={{ marginLeft: '10px' }}>
         <Upload size={16} aria-hidden="true" style={{verticalAlign: '-3px', marginRight: '5px'}}/>
-        Share a File
+        {t('share_a_file', lang)}
       </button>
 
       {showShareForm && (
         <fieldset style={{ marginTop: '1em' }}>
-          <legend>Share File with Downloader</legend>
+          <legend>{t('share_file_with_downloader', lang)}</legend>
           <form onSubmit={uploadAndShareFile}>
             <div className="form-group">
-              <label htmlFor="shareFile">Select File to Share <span className="required">*</span></label>
+              <label htmlFor="shareFile">{t('select_file_to_share', lang)} <span className="required">*</span></label>
               <input 
                 type="file" 
                 className="form-control"
@@ -369,11 +385,11 @@ export default function RequestorDashboard() {
                 onChange={handleShareFile}
                 required
               />
-              {shareFile && <p style={{ marginTop: '0.5em', fontSize: '0.9em', color: '#666' }}>Selected: {shareFile.name}</p>}
+              {shareFile && <p style={{ marginTop: '0.5em', fontSize: '0.9em', color: '#666' }}>{t('selected', lang)}: {shareFile.name}</p>}
             </div>
             <div className="form-group">
-              <label htmlFor="downloaderEmail">Downloader Email <span className="required">*</span></label>
-              <span className="hint-text">Email address of the person who will download the file</span>
+              <label htmlFor="downloaderEmail">{t('downloader_email', lang)} <span className="required">*</span></label>
+              <span className="hint-text">{t('downloader_email_hint', lang)}</span>
               <input 
                 type="email" 
                 className="form-control"
@@ -384,41 +400,41 @@ export default function RequestorDashboard() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="shareExpirationDays">Link Expiration <span className="required">*</span></label>
+              <label htmlFor="shareExpirationDays">{t('link_expiration', lang)} <span className="required">*</span></label>
               <select 
                 className="form-control" 
                 id="shareExpirationDays" 
                 value={newShare.expirationDays}
                 onChange={e => setNewShare({...newShare, expirationDays: e.target.value})}
               >
-                <option value="1">1 Day</option>
-                <option value="7">7 Days</option>
-                <option value="14">14 Days</option>
-                <option value="30">30 Days</option>
+                <option value="1">{t('one_day', lang)}</option>
+                <option value="7">{t('seven_days', lang)}</option>
+                <option value="14">{t('fourteen_days', lang)}</option>
+                <option value="30">{t('thirty_days', lang)}</option>
               </select>
             </div>
             <div className="form-group">
-              <label htmlFor="shareCaseNumber">CASE Number</label>
-              <span className="hint-text">Optional: Enter custom case number for tracking. If not provided, a unique RQ-* number will be auto-generated.</span>
+              <label htmlFor="shareCaseNumber">{t('case_number', lang)}</label>
+              <span className="hint-text">{t('case_number_hint', lang)}</span>
               <input 
                 type="text" 
                 className="form-control"
                 id="shareCaseNumber"
                 value={newShare.caseNumber}
                 onChange={e => setNewShare({...newShare, caseNumber: e.target.value})}
-                placeholder="e.g., INV-2024-001"
+                placeholder={t('case_number_placeholder', lang)}
               />
             </div>
             <div style={{ marginTop: '1.5em' }}>
               <button className="btn btn-primary" type="submit" disabled={!shareFile || !newShare.downloaderEmail || uploadingShare}>
-                {uploadingShare ? 'Uploading and Sending...' : 'Upload and Send Invitation'}
+                {uploadingShare ? t('uploading_and_sending', lang) : t('upload_and_send_invitation', lang)}
               </button>
               <button type="button" className="btn btn-default" style={{ marginLeft: '10px' }} onClick={() => { 
                 setShowShareForm(false); 
                 setShareFile(null); 
                 setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '' });
               }}>
-                Cancel
+                {t('cancel', lang)}
               </button>
             </div>
           </form>
@@ -463,17 +479,23 @@ export default function RequestorDashboard() {
                         const fileStatus = getFileStatus(req, blobName);
                         return (
                           <div key={idx} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <button className="btn btn-success" onClick={() => handleDownload(req.rowKey, blobName)}>
-                              <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
-                            </button>
+                            {fileStatus === 'Malicious' ? (
+                              <button className="btn btn-danger" disabled>
+                                <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
+                              </button>
+                            ) : (
+                              <button className="btn btn-success" onClick={() => handleDownload(req.rowKey, blobName)}>
+                                <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
+                              </button>
+                            )}
                             {getStatusBadge(fileStatus)}
                             {fileStatus === 'Clean' && (
                               <>
                                 <button className="btn btn-secondary btn-small" onClick={() => inviteDownloader(req.rowKey, blobName)}>
-                                  Share
+                                  {t('share', lang)}
                                 </button>
                                 <button className="btn btn-info btn-small" onClick={() => shareToSharePoint(req.rowKey, blobName)}>
-                                  Share to SharePoint
+                                  {t('share_to_sharepoint', lang)}
                                 </button>
                               </>
                             )}
@@ -491,7 +513,7 @@ export default function RequestorDashboard() {
         </table>
       )}
 
-      <h2 style={{ marginTop: '3em' }}>Shared Files</h2>
+      <h2 style={{ marginTop: '3em' }}>{t('shared_files', lang)}</h2>
       <button className="btn btn-default" onClick={fetchShares}>
         <RefreshCw size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> {t('refresh', lang)}
       </button>
@@ -525,19 +547,19 @@ export default function RequestorDashboard() {
                 <td>
                   {!share.downloaderEmail && share.blobUri ? (
                     <button className="btn btn-small btn-info" onClick={() => {
-                      const email = window.prompt('Downloader email:');
+                      const email = window.prompt(t('downloader_email_prompt_short', lang));
                       if (email) {
                         axios.post(`${API_BASE}/shares/${share.rowKey}/invite`, { downloaderEmail: email }, { headers: { Authorization: `Bearer token` } })
-                          .then(() => { alert('Invitation sent!'); fetchShares(); })
-                          .catch(() => alert('Failed to send invitation'));
+                          .then(() => { alert(t('invitation_sent_short', lang)); fetchShares(); })
+                          .catch(() => alert(t('failed_send_invite', lang)));
                       }
                     }}>
-                      Invite Downloader
+                      {t('invite_downloader', lang)}
                     </button>
                   ) : share.downloaderEmail ? (
-                    <span style={{ color: '#666' }}>Invited</span>
+                    <span style={{ color: '#666' }}>{t('invited', lang)}</span>
                   ) : (
-                    <span style={{ color: '#999' }}>Pending upload</span>
+                    <span style={{ color: '#999' }}>{t('pending_upload', lang)}</span>
                   )}
                 </td>
               </tr>

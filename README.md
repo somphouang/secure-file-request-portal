@@ -161,7 +161,9 @@ The system generates unique request numbers using the following algorithm:
 4. **File Upload**: Uploader receives email, enters portal, uploads file(s)
 5. **SAS Token**: Backend generates time-limited write-only SAS token for secure cloud upload
 6. **Malware Scanning**: Files quarantined and sent to Assemblyline for scanning
-7. **Status Updates**: Request status progresses: Pending → Uploaded → Scanning → Clean/Malicious
+- **Status Updates**: Request status progresses: Pending → Uploaded → Scanning → Clean/Malicious
+- **Security Restrictions**: Malicious files cannot be downloaded or shared; download buttons are disabled and appear red
+- **Individual File Status**: Multi-file uploads track status per file, allowing clean files to be downloaded while malicious ones are blocked
 8. **File Access**: Clean files become available for download or sharing
 
 ### File Share Flow
@@ -174,7 +176,8 @@ The system generates unique request numbers using the following algorithm:
 
 ### Status Lifecycle
 - **Upload Requests**: `Pending` → `Uploaded` → `Scanning` → `Clean`/`Malicious` → `Awaiting Download` → `Downloaded`
-- **File Shares**: `Ready` → `Awaiting Download` → `Downloaded`
+- **Security Enforcement**: Files marked as `Malicious` cannot be downloaded or shared; UI shows disabled red buttons
+- **File Shares**: `Ready` → `Awaiting Download` → `Downloaded` (only created from clean files)
 
 ## Security Posture
 - **Masked Storage**: Uploaders never see the actual destination container. They are provided a short-lived (1-hour) Shared Access Signature (SAS) token permitting write-only execution to a specific generated blob name.
@@ -706,7 +709,7 @@ Dashboard showing various statuses in French:
 | **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
 | **Tracking** | Request number, status progression | Request number, download completion |
 | **Expiration** | Configurable (1,7,14,30 days) | Configurable (1,7,14,30 days) |
-| **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
+| **Status** | Pending → Uploaded → Scanning → Clean/Malicious (with security restrictions) | Ready → Awaiting Download → Downloaded |
 | **File Storage** | Azure Blob Storage | Azure Blob Storage |
 | **Metadata** | UploadRequests table | DownloadShares table |
 | **Sharing Condition** | Only when file status = "Clean" | Only when file status = "Clean" |

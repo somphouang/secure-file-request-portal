@@ -409,17 +409,27 @@ export const inviteDownloader = async (req: Request, res: Response) => {
         if (!request) return res.status(404).json({ error: 'Upload request not found' });
         if (!request.blobUri) return res.status(400).json({ error: 'No file has been uploaded yet' });
 
-        // Check if file is clean before allowing sharing
-        if (request.status !== 'Clean') {
-            return res.status(400).json({ error: 'File must be clean before sharing' });
-        }
-
         // Determine which blob to share (use provided blobName or first one)
         const targetBlobName = blobName || request.blobUri.split(',')[0];
         
         // Verify the blob exists in the request
         if (!request.blobUri.includes(targetBlobName)) {
             return res.status(400).json({ error: 'Specified file not found in upload request' });
+        }
+
+        // Check if the specific file is clean before allowing sharing
+        let fileStatus = request.status;
+        if (request.fileStatuses) {
+            try {
+                const statuses = JSON.parse(request.fileStatuses);
+                fileStatus = statuses[targetBlobName] || request.status;
+            } catch (e) {
+                // If parsing fails, use overall status
+            }
+        }
+        
+        if (fileStatus !== 'Clean') {
+            return res.status(400).json({ error: 'File must be clean before sharing' });
         }
 
         // Create a new share record for tracking
@@ -578,6 +588,22 @@ export const generateDownloadSasForDownloader = async (req: Request, res: Respon
         if (!request.blobUri) return res.status(404).json({ error: 'No files available for download' });
 
         const targetBlob = filename || request.blobUri.split(',')[0];
+        
+        // Check if the specific file is malicious
+        let fileStatus = request.status;
+        if (request.fileStatuses) {
+            try {
+                const statuses = JSON.parse(request.fileStatuses);
+                fileStatus = statuses[targetBlob] || request.status;
+            } catch (e) {
+                // If parsing fails, use overall status
+            }
+        }
+        
+        if (fileStatus === 'Malicious') {
+            return res.status(403).json({ error: 'Download not allowed for malicious files.' });
+        }
+
         const sasUrl = azureBlobService.generateDownloadSasToken(targetBlob);
         res.json({ url: sasUrl });
     } catch (error) {
@@ -599,6 +625,22 @@ export const generateDownloadSas = async (req: Request, res: Response) => {
         if (!request.blobUri) return res.status(404).json({ error: `No files uploaded.` });
 
         const targetBlob = filename || request.blobUri.split(',')[0];
+        
+        // Check if the specific file is malicious
+        let fileStatus = request.status;
+        if (request.fileStatuses) {
+            try {
+                const statuses = JSON.parse(request.fileStatuses);
+                fileStatus = statuses[targetBlob] || request.status;
+            } catch (e) {
+                // If parsing fails, use overall status
+            }
+        }
+        
+        if (fileStatus === 'Malicious') {
+            return res.status(403).json({ error: 'Download not allowed for malicious files.' });
+        }
+
         const sasUrl = azureBlobService.generateDownloadSasToken(targetBlob);
         res.json({ url: sasUrl });
     } catch (error) {
