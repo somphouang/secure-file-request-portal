@@ -30,20 +30,75 @@ process.on('exit', (code) => {
     console.log(`Process exiting with code: ${code}`);
 });
 
-// Auth Middleware Mock
+// Auth Middleware
+const expectedTenantId = process.env.MSAL_TENANT_ID;
+const expectedClientId = process.env.MSAL_CLIENT_ID;
+const expectedAudience = process.env.MSAL_EXPECTED_AUD || process.env.MSAL_CLIENT_ID;
+
+const base64UrlDecode = (value: string) => {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(value.length + (4 - value.length % 4) % 4, '=');
+    return Buffer.from(padded, 'base64').toString('utf8');
+};
+
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1];
-        try {
-            const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-            req.user = { preferred_username: decoded.preferred_username || decoded.upn || decoded.unique_name || 'msaluser@example.com' };
-            return next();
-        } catch (e) {
-            console.error('Invalid token format', e);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization bearer token required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+        return res.status(401).json({ error: 'Invalid authorization token format' });
+    }
+
+    let decoded: any;
+    try {
+        decoded = JSON.parse(base64UrlDecode(parts[1]));
+    } catch (e) {
+        console.error('Invalid token payload', e);
+        return res.status(401).json({ error: 'Invalid authorization token payload' });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp && now >= decoded.exp) {
+        return res.status(401).json({ error: 'Authorization token expired' });
+    }
+    if (decoded.nbf && now < decoded.nbf) {
+        return res.status(401).json({ error: 'Authorization token not yet valid' });
+    }
+
+    if (expectedTenantId) {
+        if (!decoded.tid || decoded.tid !== expectedTenantId) {
+            return res.status(401).json({ error: 'Invalid tenant in authorization token' });
+        }
+        if (!decoded.iss || !decoded.iss.includes(expectedTenantId)) {
+            return res.status(401).json({ error: 'Invalid issuer in authorization token' });
         }
     }
-    req.user = { preferred_username: (req.headers['x-user-email'] as string) || 'admin@example.com' };
+
+    if (!expectedClientId) {
+        return res.status(500).json({ error: 'Backend configuration error: MSAL_CLIENT_ID is not set' });
+    }
+
+    const tokenClientId = decoded.appid || decoded.azp;
+    if (!tokenClientId || tokenClientId !== expectedClientId) {
+        return res.status(401).json({ error: 'Invalid client/app ID in authorization token' });
+    }
+
+    if (expectedAudience) {
+        const audValues = Array.isArray(decoded.aud) ? decoded.aud : [decoded.aud];
+        if (!audValues.includes(expectedAudience)) {
+            return res.status(401).json({ error: 'Invalid audience in authorization token' });
+        }
+    }
+
+    const preferredUsername = decoded.preferred_username || decoded.upn || decoded.unique_name || decoded.email || decoded.sub;
+    if (!preferredUsername) {
+        return res.status(401).json({ error: 'Authorization token does not contain a valid user identity' });
+    }
+
+    req.user = { preferred_username: preferredUsername };
     next();
 };
 

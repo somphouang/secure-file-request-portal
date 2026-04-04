@@ -165,11 +165,21 @@ export default function RequestorDashboard() {
     const downloaderEmail = window.prompt(t('downloader_email_prompt', lang));
     if (!downloaderEmail) return;
 
+    const expirationInput = window.prompt(t('share_expiration_days_prompt', lang), '7');
+    if (!expirationInput) return;
+
+    const expirationDays = parseInt(expirationInput, 10);
+    if (isNaN(expirationDays) || expirationDays < 1) {
+      alert(t('invalid_expiration_days', lang));
+      return;
+    }
+
     try {
       const config = await getAxiosConfig();
       await axios.post(`${API_BASE}/requests/${token}/invite-downloader`, { 
         downloaderEmail,
-        blobName 
+        blobName,
+        expirationDays
       }, config);
       alert(t('invitation_sent', lang));
       fetchShares(); // Refresh the shares list to show the new share
@@ -481,6 +491,10 @@ export default function RequestorDashboard() {
                           <div key={idx} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {fileStatus === 'Malicious' ? (
                               <button className="btn btn-danger" disabled>
+                                <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
+                              </button>
+                            ) : fileStatus !== 'Clean' ? (
+                              <button className="btn btn-secondary" disabled>
                                 <Download size={14} aria-hidden="true" style={{verticalAlign: '-2px'}}/> {t('download', lang)} {blobName}
                               </button>
                             ) : (

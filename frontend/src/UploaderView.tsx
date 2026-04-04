@@ -104,7 +104,7 @@ export default function UploaderView() {
 
   const handleDone = async () => {
     try {
-      if (!window.confirm("Are you sure you want to complete your upload? This request will be closed and no further files can be added.")) {
+      if (!window.confirm(t('confirm_complete_upload', lang))) {
         return;
       }
       await axios.post(`${API_BASE}/requests/${token}/complete`);

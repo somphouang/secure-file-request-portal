@@ -281,7 +281,7 @@ export const getDownloadShares = async (req: Request, res: Response) => {
 export const inviteDownloaderToShare = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
-        const { downloaderEmail } = req.body;
+        const { downloaderEmail, expirationDays } = req.body;
 
         if (!downloaderEmail) {
             return res.status(400).json({ error: 'downloaderEmail required' });
@@ -396,7 +396,7 @@ export const getShareInfo = async (req: Request, res: Response) => {
 export const inviteDownloader = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
-        const { downloaderEmail, blobName } = req.body;
+        const { downloaderEmail, blobName, expirationDays } = req.body;
 
         if (!downloaderEmail) {
             return res.status(400).json({ error: 'downloaderEmail required' });
@@ -437,15 +437,20 @@ export const inviteDownloader = async (req: Request, res: Response) => {
         const originalFilename = targetBlobName.split('/').pop() || targetBlobName;
 
         // Use same expiration as original request or default to 7 days
-        const expirationDays = request.expiresAt ?
+        const originalExpirationDays = request.expiresAt ?
             Math.ceil((new Date(request.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 7;
+        const requestedExpirationDays = Number.isInteger(expirationDays) ? expirationDays : parseInt(expirationDays, 10);
+        const effectiveExpirationDays = (Number.isInteger(requestedExpirationDays) && requestedExpirationDays > 0)
+            ? requestedExpirationDays
+            : Math.max(1, originalExpirationDays);
 
         const shareEntity = await azureTableService.createDownloadShare(
             requestorEmail,
             shareToken,
             targetBlobName,
             originalFilename,
-            Math.max(1, expirationDays) // Ensure at least 1 day
+            Math.max(1, effectiveExpirationDays),
+            request.caseNumber || undefined
         );
 
         // Update the share with downloader info and send invitation
@@ -621,12 +626,11 @@ export const generateDownloadSas = async (req: Request, res: Response) => {
         const request = await azureTableService.getUploadRequest(requestorEmail, token);
         
         if (!request) return res.status(404).json({ error: 'Not found or not authorized' });
-        // Instead of strict Clean check, we check if there are files
         if (!request.blobUri) return res.status(404).json({ error: `No files uploaded.` });
 
         const targetBlob = filename || request.blobUri.split(',')[0];
         
-        // Check if the specific file is malicious
+        // Check if the specific file is clean before allowing download
         let fileStatus = request.status;
         if (request.fileStatuses) {
             try {
@@ -637,8 +641,8 @@ export const generateDownloadSas = async (req: Request, res: Response) => {
             }
         }
         
-        if (fileStatus === 'Malicious') {
-            return res.status(403).json({ error: 'Download not allowed for malicious files.' });
+        if (fileStatus !== 'Clean') {
+            return res.status(403).json({ error: 'Download allowed only for clean files.' });
         }
 
         const sasUrl = azureBlobService.generateDownloadSasToken(targetBlob);
