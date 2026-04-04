@@ -95,19 +95,32 @@ graph TD
 - All email templates available in both languages
 - Case numbers and tracking info preserved across languages
 
-### 6. **Multi-File Upload**
+### 6. **Automated Uploader Passcodes** (New)
+- **Auto-Generated Secrets**: Uploader requests now automatically generate 18-character encrypted passcodes
+- **No Manual Entry**: Requestors no longer need to manually create or remember secrets
+- **Secure Hashing**: Passcodes are bcrypt-hashed before storage, plaintext only in emails
+- **Format**: Alphanumeric characters (similar to downloader passcodes but 18 chars vs 8 chars)
+
+### 7. **Multi-File Upload**
 - Requestors can allow uploaders to submit multiple files in a single request
 - Checkbox option in request creation
 - Individual file scanning with aggregated status
 - Uploader experience varies based on requestor's configuration
 
-### 7. **Role-Based Security**
+### 8. **SharePoint Integration** (New)
+- **One-Click Upload**: "Share to SharePoint" button next to clean files
+- **Entra ID Authentication**: Uses requestor's Microsoft 365 identity for seamless SSO
+- **Microsoft Graph API**: Secure file upload to SharePoint Online
+- **Permission Requirements**: Requires `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes
+- **Default Location**: Uploads to the root Documents library of the user's default SharePoint site
+
+### 9. **Role-Based Security**
 - **Requestor**: Authenticated via Azure AD/Entra ID, creates requests and invites
 - **Uploader**: Public access via secure token, no authentication required
 - **Downloader**: Public access via secure token and passcode, no authentication required
 - **Zero Trust**: All requests validated with time-limited tokens
 
-### 8. **Audit & Compliance**
+### 10. **Audit & Compliance**
 - All transactions tracked with case numbers
 - Status lifecycle preserved for regulatory compliance
 - Email delivery logs include recipient, timestamp, and case number
@@ -210,9 +223,11 @@ Called automatically when a file share downloader completes download.
 ```
 POST /api/requests
 ```
-Creates a new upload request and sends email to uploader.
-- **Body**: `{ uploaderEmail: string, allowMultipleFiles?: boolean }`
-- **Response**: `{ token, caseNumber, expiresAt, ... }`
+Creates a new upload request with auto-generated 18-character passcode.
+- **Body**: `{ uploaderEmail: string, requestedFileTypes?: string, expirationDays?: number, allowMultiple?: boolean }`
+- **Auto-Generated**: 18-character alphanumeric passcode (bcrypt-hashed for storage)
+- **Response**: `{ message, token, caseNumber, request }`
+- **Email**: Contains upload link and auto-generated passcode
 
 #### Requestor - Create File Share Upload
 ```
@@ -290,6 +305,42 @@ The Secure File Portal Assistant application is now completely developed. It inc
   - `azureTableService.js`: Lightweight NoSQL tracking for request stages and file lifecycle tracking.
   - `gcNotifyService.js`: Wrapper for GCNotify emails (currently mocks to console limit API usage during testing).
   - `assemblylineService.js`: Simulates a 10-second quarantine and scan, marking the file clean automatically.
+
+1. Automated Uploader Passcodes ✅
+   - **Frontend Changes**: Removed Secret Field from the uploader request form
+     - Eliminated the manual secret input field
+     - Removed secret from newRequest state object
+     - Requestors now only enter uploader email, file types, expiration, and multi-file option
+   - **Backend Changes**: Auto-Generation of Secrets
+     - Added auto-generation function that creates 18-character alphanumeric secrets
+     - Secrets are bcrypt-hashed before storage
+     - Auto-generated secret is sent in the uploader invitation email
+   - **Security Benefits**:
+     - Consistent Security: Same bcrypt hashing as downloader passcodes
+     - No Manual Errors: Eliminates typos or weak manual passcodes
+     - 18-Character Length: Stronger than the 8-character downloader passcodes
+     - Seamless UX: Requestors don't need to think about or remember secrets
+2. SharePoint Integration ✅
+   - **Frontend Changes**: Added SharePoint upload capability
+     - New "Share to SharePoint" button next to the "Share" button for clean files
+     - Integrated with Microsoft Graph API for SharePoint uploads
+     - Uses requestor's existing MSAL token with expanded scopes
+   - **Microsoft Graph API Integration**:
+     - One-Click Upload: Downloads clean file from Azure Blob Storage
+     - Seamless SSO: Uses requestor's Entra ID token (no additional login required)
+     - Default Location: Uploads to root Documents library of user's default SharePoint site
+     - Required Permissions: `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes
+   - **Error Handling**: Clear error messages for permission or connectivity issues
+   - **Technical Validation**:
+     - ✅ TypeScript Compilation: No errors in frontend or backend
+     - ✅ Build Success: Both projects build successfully
+     - ✅ Security Audit: 0 high/critical vulnerabilities
+     - ✅ API Integration: Microsoft Graph API properly integrated
+   - **User Experience Flow**:
+     - File uploaded and scanned → Status: "Clean"
+     - Requestor sees "Share" and "Share to SharePoint" buttons
+     - Click "Share to SharePoint" → File automatically uploaded to SharePoint
+     - Success confirmation displayed
 
 ## How to Test and Verify
 
@@ -599,14 +650,15 @@ Dashboard showing various statuses in French:
 | **Initiated By** | Requestor | Requestor |
 | **Recipient Role** | Uploader (receives upload link) | Downloader (receives download link) |
 | **Action Required** | Upload a file | Download a pre-uploaded file |
-| **Security** | SAS token write-only, passcode not needed | Passcode + secure download link |
+| **Security** | SAS token write-only, auto-generated 18-char passcode | Passcode + secure download link |
 | **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
 | **Tracking** | Case number, status progression | Case number, download completion |
 | **Expiration** | Configurable (1,7,14,30 days) | Configurable (1,7,14,30 days) |
 | **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
 | **File Storage** | Azure Blob Storage | Azure Blob Storage |
 | **Metadata** | UploadRequests table | DownloadShares table |
-| **Sharing Condition** | N/A | Only when file status = "Clean" |
+| **Sharing Condition** | Only when file status = "Clean" | Only when file status = "Clean" |
+| **SharePoint Integration** | Available for clean files | N/A |
 
 ---
 

@@ -61,7 +61,6 @@ export default function RequestorDashboard() {
     uploaderEmail: '', 
     requestedFileTypes: 'pdf,xlsx',
     expirationDays: '7',
-    secret: '',
     allowMultiple: false
   });
   const [shareFile, setShareFile] = useState<File | null>(null);
@@ -104,7 +103,7 @@ export default function RequestorDashboard() {
       const config = await getAxiosConfig();
       await axios.post(`${API_BASE}/requests`, newRequest, config);
       setShowConfig(false);
-      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', secret: '', allowMultiple: false });
+      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', allowMultiple: false });
       fetchRequests();
     } catch (error) {
       console.error('Failed to create request', error);
@@ -121,6 +120,39 @@ export default function RequestorDashboard() {
       window.open(data.url, '_blank');
     } catch (error) {
       alert('Failed to get download link or file is not clean.');
+    }
+  };
+
+  const shareToSharePoint = async (token: string, blobName?: string) => {
+    try {
+      // Get the file download URL
+      const config = await getAxiosConfig();
+      const { data } = await axios.get<{ url: string }>(`${API_BASE}/requests/${token}/download${blobName ? `?filename=${encodeURIComponent(blobName)}` : ''}`, config);
+      
+      // Download the file
+      const fileResponse = await axios.get(data.url, { responseType: 'blob' });
+      const fileBlob = fileResponse.data;
+      
+      // Get Microsoft Graph token
+      const tokenResponse = await instance.acquireTokenSilent({
+        scopes: ["https://graph.microsoft.com/Files.ReadWrite.All", "https://graph.microsoft.com/Sites.ReadWrite.All"],
+        account: accounts[0]
+      });
+      
+      // Upload to SharePoint - using default Documents library
+      const sharePointUrl = `https://graph.microsoft.com/v1.0/sites/root/drive/root:/${encodeURIComponent(blobName || 'uploaded-file')}`;
+      
+      await axios.put(sharePointUrl, fileBlob, {
+        headers: {
+          'Authorization': `Bearer ${tokenResponse.accessToken}`,
+          'Content-Type': fileBlob.type || 'application/octet-stream'
+        }
+      });
+      
+      alert('File successfully uploaded to SharePoint!');
+    } catch (error) {
+      console.error('Failed to share to SharePoint', error);
+      alert('Failed to upload file to SharePoint. Please check your permissions.');
     }
   };
 
@@ -290,17 +322,6 @@ export default function RequestorDashboard() {
                 <option value="30">30 {t('days', lang)}</option>
               </select>
             </div>
-            <div className="form-group">
-              <label htmlFor="secret">{t('secret', lang)}</label>
-              <span className="hint-text">{t('hint_secret', lang)}</span>
-              <input 
-                type="text" 
-                className="form-control"
-                id="secret"
-                value={newRequest.secret}
-                onChange={e => setNewRequest({...newRequest, secret: e.target.value})}
-              />
-            </div>
             <div style={{ marginTop: '1.5em' }}>
               <button className="btn btn-primary" type="submit" disabled={loading}>
                 {loading ? '...' : t('submit', lang)}
@@ -416,9 +437,14 @@ export default function RequestorDashboard() {
                             </button>
                             {getStatusBadge(fileStatus)}
                             {fileStatus === 'Clean' && (
-                              <button className="btn btn-secondary btn-small" onClick={() => inviteDownloader(req.rowKey, blobName)}>
-                                Share
-                              </button>
+                              <>
+                                <button className="btn btn-secondary btn-small" onClick={() => inviteDownloader(req.rowKey, blobName)}>
+                                  Share
+                                </button>
+                                <button className="btn btn-info btn-small" onClick={() => shareToSharePoint(req.rowKey, blobName)}>
+                                  Share to SharePoint
+                                </button>
+                              </>
                             )}
                           </div>
                         );
