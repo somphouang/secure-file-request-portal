@@ -71,12 +71,13 @@ graph TD
 - Download completion tracking with automatic status updates
 - Bilingual email notifications with download links
 
-### 3. **Case Number Tracking** (New)
-- Every upload request and file share gets a unique 16-character case number
-- Format: `CASE-[8-char-timestamp][8-char-random]`
+### 3. **Request Number Tracking** (New)
+- Every upload request and file share gets a unique 16-character request number
+- Format: `RQ-[timestamp-base36][random-base36]` (truncated to 16 chars)
+- Algorithm: Timestamp converted to base36 uppercase + 8-char random base36 uppercase, prefixed with "RQ-"
 - Included in all email subjects and bodies for reference
 - Central tracking for compliance and auditing
-- Example: `CASE-VR3KLY8ZA0G9J2X`
+- Example: `RQ-VR3KLY8ZA0G9J2X`
 
 ### 4. **Download Completion Tracking** (New)
 - Automatic status updates when downloader completes file download
@@ -125,6 +126,55 @@ graph TD
 - Status lifecycle preserved for regulatory compliance
 - Email delivery logs include recipient, timestamp, and case number
 - Download completion timestamps recorded
+
+## Request Number Generation Algorithm
+
+The system generates unique request numbers using the following algorithm:
+
+1. **Timestamp Component**: `Date.now().toString(36).toUpperCase()`
+   - Converts current Unix timestamp to base36 representation
+   - Uses uppercase letters for consistency
+
+2. **Random Component**: `Math.random().toString(36).substring(2, 10).toUpperCase()`
+   - Generates 8-character random string in base36
+   - Removes first 2 characters (`0.`) from Math.random() output
+   - Uses uppercase for consistency
+
+3. **Prefix**: `RQ-` (Request identifier)
+
+4. **Concatenation & Truncation**: `RQ-${timestamp}${random}`.substring(0, 16)
+   - Combines prefix, timestamp, and random components
+   - Truncates to exactly 16 characters to ensure consistency
+
+**Example Generation**:
+- Timestamp: `Date.now()` = 1703123456789
+- Base36: `VR3KLY8Z`
+- Random: `A0G9J2X`
+- Result: `RQ-VR3KLY8ZA0G9J2X` (truncated to 16 chars)
+
+## Detailed Workflow
+
+### Upload Request Flow
+1. **Request Creation**: Requestor creates upload request with optional manual case number
+2. **Auto-Generation**: System generates unique RQ-* request number
+3. **Email Dispatch**: Bilingual email sent with request number, optional case number, and secure upload link
+4. **File Upload**: Uploader receives email, enters portal, uploads file(s)
+5. **SAS Token**: Backend generates time-limited write-only SAS token for secure cloud upload
+6. **Malware Scanning**: Files quarantined and sent to Assemblyline for scanning
+7. **Status Updates**: Request status progresses: Pending → Uploaded → Scanning → Clean/Malicious
+8. **File Access**: Clean files become available for download or sharing
+
+### File Share Flow
+1. **File Selection**: Requestor selects clean file from completed upload request
+2. **Share Creation**: System generates new RQ-* request number and optional case number
+3. **Passcode Generation**: Auto-generates 8-character encrypted download passcode
+4. **Email Notification**: Downloader receives secure link with passcode
+5. **Download Access**: Downloader enters passcode and downloads file
+6. **Completion Tracking**: System records download timestamp and updates status
+
+### Status Lifecycle
+- **Upload Requests**: `Pending` → `Uploaded` → `Scanning` → `Clean`/`Malicious` → `Awaiting Download` → `Downloaded`
+- **File Shares**: `Ready` → `Awaiting Download` → `Downloaded`
 
 ## Security Posture
 - **Masked Storage**: Uploaders never see the actual destination container. They are provided a short-lived (1-hour) Shared Access Signature (SAS) token permitting write-only execution to a specific generated blob name.
@@ -581,8 +631,9 @@ French version of email notification with bilingual content:
 All file requests and shares now include unique 16-character case numbers for audit and tracking purposes.
 
 #### Requestor Dashboard - Case Numbers in Upload Requests (English)
-Case number displayed prominently in the first column of the requests table:
+Case number displayed in the first column of the requests table:
 ![alt text](img/dashboard_case_numbers_requests_en.png)
+
 
 #### Requestor Dashboard - Case Numbers in Uploads (French)
 Dashboard view showing case numbers in French:
@@ -597,8 +648,9 @@ File share table with case numbers in French:
 ![alt text](img/dashboard_case_numbers_shares_fr.png)
 
 #### Case Number Format Reference
-Case numbers follow the format: `CASE-[8-char-timestamp][8-char-random]`
-- Example: `CASE-VR3KLY8ZA0G9J2X`
+Request numbers follow the format: `RQ-[timestamp-base36][random-base36]` (truncated to 16 chars)
+- Algorithm: Current timestamp converted to base36 uppercase, concatenated with 8-character random string in base36 uppercase, prefixed with "RQ-", and truncated to exactly 16 characters
+- Example: `RQ-VR3KLY8ZA0G9J2X`
 - Length: 16 characters maximum
 - Included in: Email subjects, email bodies, and all audit logs
 - Purpose: Unique tracking for compliance, auditing, and support reference
@@ -652,7 +704,7 @@ Dashboard showing various statuses in French:
 | **Action Required** | Upload a file | Download a pre-uploaded file |
 | **Security** | SAS token write-only, auto-generated 18-char passcode | Passcode + secure download link |
 | **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
-| **Tracking** | Case number, status progression | Case number, download completion |
+| **Tracking** | Request number, status progression | Request number, download completion |
 | **Expiration** | Configurable (1,7,14,30 days) | Configurable (1,7,14,30 days) |
 | **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
 | **File Storage** | Azure Blob Storage | Azure Blob Storage |

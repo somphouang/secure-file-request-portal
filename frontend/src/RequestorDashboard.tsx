@@ -17,6 +17,7 @@ interface UploadRequest {
   blobUri?: string;
   allowMultiple?: boolean;
   fileStatuses?: string;
+  requestNumber: string;
   caseNumber: string;
   downloaderEmail?: string;
   sharedForDownload?: boolean;
@@ -31,6 +32,7 @@ interface FileShare {
   expiresAt: string;
   blobUri?: string;
   downloaderEmail?: string;
+  requestNumber: string;
   caseNumber: string;
 }
 
@@ -61,13 +63,15 @@ export default function RequestorDashboard() {
     uploaderEmail: '', 
     requestedFileTypes: 'pdf,xlsx',
     expirationDays: '7',
-    allowMultiple: false
+    allowMultiple: false,
+    caseNumber: ''
   });
   const [shareFile, setShareFile] = useState<File | null>(null);
   const [uploadingShare, setUploadingShare] = useState(false);
   const [newShare, setNewShare] = useState({ 
     downloaderEmail: '', 
-    expirationDays: '7'
+    expirationDays: '7',
+    caseNumber: ''
   });
   const [loading, setLoading] = useState(false);
   
@@ -103,7 +107,7 @@ export default function RequestorDashboard() {
       const config = await getAxiosConfig();
       await axios.post(`${API_BASE}/requests`, newRequest, config);
       setShowConfig(false);
-      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', allowMultiple: false });
+      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', allowMultiple: false, caseNumber: '' });
       fetchRequests();
     } catch (error) {
       console.error('Failed to create request', error);
@@ -193,7 +197,8 @@ export default function RequestorDashboard() {
         `${API_BASE}/shares/upload`,
         { 
           filename: shareFile.name,
-          expirationDays: parseInt(newShare.expirationDays)
+          expirationDays: parseInt(newShare.expirationDays),
+          caseNumber: newShare.caseNumber
         },
         config
       );
@@ -223,7 +228,7 @@ export default function RequestorDashboard() {
 
       alert('File uploaded and downloader invitation sent successfully!');
       setShareFile(null);
-      setNewShare({ downloaderEmail: '', expirationDays: '7' });
+      setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '' });
       setShowShareForm(false);
       fetchShares();
     } catch (error) {
@@ -294,6 +299,18 @@ export default function RequestorDashboard() {
                 required
                 value={newRequest.requestedFileTypes}
                 onChange={e => setNewRequest({...newRequest, requestedFileTypes: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="caseNumber">CASE Number</label>
+              <span className="hint-text">Optional: Enter custom case number for tracking. If not provided, a unique RQ-* number will be auto-generated.</span>
+              <input 
+                type="text" 
+                className="form-control"
+                id="caseNumber"
+                value={newRequest.caseNumber}
+                onChange={e => setNewRequest({...newRequest, caseNumber: e.target.value})}
+                placeholder="e.g., INV-2024-001"
               />
             </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
@@ -380,6 +397,18 @@ export default function RequestorDashboard() {
                 <option value="30">30 Days</option>
               </select>
             </div>
+            <div className="form-group">
+              <label htmlFor="shareCaseNumber">CASE Number</label>
+              <span className="hint-text">Optional: Enter custom case number for tracking. If not provided, a unique RQ-* number will be auto-generated.</span>
+              <input 
+                type="text" 
+                className="form-control"
+                id="shareCaseNumber"
+                value={newShare.caseNumber}
+                onChange={e => setNewShare({...newShare, caseNumber: e.target.value})}
+                placeholder="e.g., INV-2024-001"
+              />
+            </div>
             <div style={{ marginTop: '1.5em' }}>
               <button className="btn btn-primary" type="submit" disabled={!shareFile || !newShare.downloaderEmail || uploadingShare}>
                 {uploadingShare ? 'Uploading and Sending...' : 'Upload and Send Invitation'}
@@ -387,7 +416,7 @@ export default function RequestorDashboard() {
               <button type="button" className="btn btn-default" style={{ marginLeft: '10px' }} onClick={() => { 
                 setShowShareForm(false); 
                 setShareFile(null); 
-                setNewShare({ downloaderEmail: '', expirationDays: '7' });
+                setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '' });
               }}>
                 Cancel
               </button>
@@ -409,7 +438,8 @@ export default function RequestorDashboard() {
         <table className="table">
           <thead>
             <tr>
-              <th scope="col">Case Number</th>
+              <th scope="col">{t('table_request_number', lang)}</th>
+              <th scope="col">{t('table_case_number', lang)}</th>
               <th scope="col">{t('table_uploader', lang)}</th>
               <th scope="col">{t('table_type', lang)}</th>
               <th scope="col">{t('table_status', lang)}</th>
@@ -420,7 +450,8 @@ export default function RequestorDashboard() {
           <tbody>
             {requests.map(req => (
               <tr key={req.rowKey}>
-                <td><strong>{req.caseNumber}</strong></td>
+                <td><strong>{req.requestNumber}</strong></td>
+                <td><strong>{req.caseNumber || '--'}</strong></td>
                 <td>{req.uploaderEmail}</td>
                 <td>{req.requestedFileTypes.toUpperCase()}</td>
                 <td>{getStatusBadge(req.status)}</td>
@@ -462,29 +493,31 @@ export default function RequestorDashboard() {
 
       <h2 style={{ marginTop: '3em' }}>Shared Files</h2>
       <button className="btn btn-default" onClick={fetchShares}>
-        <RefreshCw size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> Refresh
+        <RefreshCw size={14} aria-hidden="true" style={{verticalAlign: '-2px', marginRight: '5px'}}/> {t('refresh', lang)}
       </button>
 
       {shares.length === 0 ? (
         <div className="alert alert-info" style={{ marginTop: '1em' }}>
-          No files have been shared yet.
+          {t('no_shares', lang)}
         </div>
       ) : (
         <table className="table" style={{ marginTop: '1em' }}>
           <thead>
             <tr>
-              <th scope="col">Case Number</th>
-              <th scope="col">Filename</th>
-              <th scope="col">Status</th>
-              <th scope="col">Downloader</th>
-              <th scope="col">Expires</th>
-              <th scope="col">Action</th>
+              <th scope="col">{t('table_request_number', lang)}</th>
+              <th scope="col">{t('table_case_number', lang)}</th>
+              <th scope="col">{t('table_filename', lang)}</th>
+              <th scope="col">{t('table_status', lang)}</th>
+              <th scope="col">{t('table_downloader', lang)}</th>
+              <th scope="col">{t('table_expires', lang)}</th>
+              <th scope="col">{t('table_action', lang)}</th>
             </tr>
           </thead>
           <tbody>
             {shares.map(share => (
               <tr key={share.rowKey}>
-                <td><strong>{share.caseNumber}</strong></td>
+                <td><strong>{share.requestNumber}</strong></td>
+                <td><strong>{share.caseNumber || '--'}</strong></td>
                 <td>{share.originalFilename}</td>
                 <td>{getStatusBadge(share.status)}</td>
                 <td>{share.downloaderEmail || '--'}</td>
