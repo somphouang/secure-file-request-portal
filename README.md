@@ -536,6 +536,10 @@ Bilingual Support (English/French)
 
 The following new screenshots were added in chronological order by creation date. Each file shows a recent frontend or backend screen capture for uploader, requestor, multi-file, share, and downloader workflows.
 
+- ![Secure File Request Portal Login](img/image.png)
+
+- ![Portail Sécurisé de Demande de Fichiers](img/image-1.png)
+
 - ![Multiple files not requested - English](img/multiple_fles_not_requested-en.png) `multiple_fles_not_requested-en.png` – Requestor/uploader state when multiple-file upload is not enabled, showing the single-file request flow.
 - ![Upload fulfilled confirmation - English](img/upload_fulfilled_en.png) `upload_fulfilled_en.png` – Confirmation screen after the uploader successfully finishes the upload.
 - ![Requestor status summary](img/upload_requestor_status.png) `upload_requestor_status.png` – Requestor dashboard showing current request progress and status indicators.
@@ -587,12 +591,6 @@ The following new screenshots were added in chronological order by creation date
 
 ### Demo (Archived)
 
-![Secure File Request Portal Login](img/image.png)
-
-![Portail Sécurisé de Demande de Fichiers](img/image-1.png)
-
-Federated User Login via Entra ID 
-![Requestor Dashboard](img/image-2.png)
 
 Creating new Request
 ![Request Details](img/image-3.png)
