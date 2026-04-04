@@ -12,12 +12,14 @@ const mailerFrom = process.env.MAILER_FROM || '';
 const mailerUser = process.env.MAILER_USER || '';
 const mailerPasswd = process.env.MAILER_PASSWD || '';
 
-export async function sendUploadRequestEmail(uploaderEmail: string, requestorEmail: string, uploadLink: string, passcode?: string, allowMultiple?: boolean, caseNumber?: string): Promise<any> {
-    const subject = `Secure File Request from ${requestorEmail}${caseNumber ? ` [${caseNumber}]` : ''}`;
+export async function sendUploadRequestEmail(uploaderEmail: string, requestorEmail: string, uploadLink: string, passcode?: string, allowMultiple?: boolean, requestNumber?: string, caseNumber?: string): Promise<any> {
+    const subject = `Secure File Request from ${requestorEmail}${requestNumber ? ` [${requestNumber}]` : ''}${caseNumber ? ` [${caseNumber}]` : ''}`;
     let text = `You have been asked to upload a file by\n${requestorEmail}\n`;
+    if (requestNumber) text += `\nRequest Number: ${requestNumber}\n`;
     if (caseNumber) text += `\nCase Number: ${caseNumber}\n`;
     text += `\nPlease use the following link to upload:\n${uploadLink}\n`;
     let html = `<p>You have been asked to upload a file by<br><strong>${requestorEmail}</strong></p>`;
+    if (requestNumber) html += `<p>Request Number: <strong>${requestNumber}</strong></p>`;
     if (caseNumber) html += `<p>Case Number: <strong>${caseNumber}</strong></p>`;
     html += `<p>Please use the following link to upload:<br><a href="${uploadLink}">${uploadLink}</a></p>`;
 
@@ -114,12 +116,14 @@ export async function sendUploadRequestEmail(uploaderEmail: string, requestorEma
     }
 }
 
-export async function sendDownloadRequestEmail(downloaderEmail: string, requestorEmail: string, downloadLink: string, passcode: string, caseNumber?: string): Promise<any> {
-    const subject = `Secure Download link from ${requestorEmail}${caseNumber ? ` [${caseNumber}]` : ''}`;
+export async function sendDownloadRequestEmail(downloaderEmail: string, requestorEmail: string, downloadLink: string, passcode: string, requestNumber?: string, caseNumber?: string): Promise<any> {
+    const subject = `Secure Download link from ${requestorEmail}${requestNumber ? ` [${requestNumber}]` : ''}${caseNumber ? ` [${caseNumber}]` : ''}`;
     let text = `You have been authorized to download a file by\n${requestorEmail}\n`;
+    if (requestNumber) text += `\nRequest Number: ${requestNumber}\n`;
     if (caseNumber) text += `\nCase Number: ${caseNumber}\n`;
     text += `\nPlease use the following link to download:\n${downloadLink}\n\nYour passcode is:\n${passcode}\n`;
     let html = `<p>You have been authorized to download a file by<br><strong>${requestorEmail}</strong></p>`;
+    if (requestNumber) html += `<p>Request Number: <strong>${requestNumber}</strong></p>`;
     if (caseNumber) html += `<p>Case Number: <strong>${caseNumber}</strong></p>`;
     html += `<p>Please use the following link to download:<br><a href="${downloadLink}">${downloadLink}</a></p>
                 <p>Your passcode is:<br><strong>${passcode}</strong></p>`;

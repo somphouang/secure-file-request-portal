@@ -71,12 +71,13 @@ graph TD
 - Download completion tracking with automatic status updates
 - Bilingual email notifications with download links
 
-### 3. **Case Number Tracking** (New)
-- Every upload request and file share gets a unique 16-character case number
-- Format: `CASE-[8-char-timestamp][8-char-random]`
+### 3. **Request Number Tracking** (New)
+- Every upload request and file share gets a unique 16-character request number
+- Format: `RQ-[timestamp-base36][random-base36]` (truncated to 16 chars)
+- Algorithm: Timestamp converted to base36 uppercase + 8-char random base36 uppercase, prefixed with "RQ-"
 - Included in all email subjects and bodies for reference
 - Central tracking for compliance and auditing
-- Example: `CASE-VR3KLY8ZA0G9J2X`
+- Example: `RQ-VR3KLY8ZA0G9J2X`
 
 ### 4. **Download Completion Tracking** (New)
 - Automatic status updates when downloader completes file download
@@ -108,11 +109,36 @@ graph TD
 - Uploader experience varies based on requestor's configuration
 
 ### 8. **SharePoint Integration** (New)
-- **One-Click Upload**: "Share to SharePoint" button next to clean files
-- **Entra ID Authentication**: Uses requestor's Microsoft 365 identity for seamless SSO
-- **Microsoft Graph API**: Secure file upload to SharePoint Online
-- **Permission Requirements**: Requires `Files.ReadWrite.All` and `Sites.ReadWrite.All` scopes
+- **One-Click Upload**: "Share to SharePoint" button appears next to clean files only
+- **Entra ID Authentication**: Uses the requestor's Microsoft 365 identity and token acquisition via MSAL
+- **Microsoft Graph API**: Secure file upload to the user’s default SharePoint root drive
+- **Permission Requirements**: Requires delegated Graph permissions `Files.ReadWrite.All` and `Sites.ReadWrite.All`
 - **Default Location**: Uploads to the root Documents library of the user's default SharePoint site
+- **Important User Requirements**:
+  - The requestor must be signed in with a Microsoft 365 account that has write access to the SharePoint site and default document library
+  - The AAD app registration must be granted consent for `Files.ReadWrite.All` and `Sites.ReadWrite.All`
+  - If the requestor does not have SharePoint write privileges for the default site, the upload will fail
+  - The feature depends on valid MSAL tokens being acquired silently; if the user has not signed in or consented, the Graph upload request will not succeed
+
+#### SharePoint permissions and failure explanation
+When the UI shows:
+
+> Failed to upload file to SharePoint. Please check your permissions.
+
+This generally means one of the following:
+- The signed-in requestor account does not have permission to create files in the SharePoint site/document library being targeted
+- The Microsoft Graph scopes required by the frontend/backend app have not been granted or consented (`Files.ReadWrite.All`, `Sites.ReadWrite.All`)
+- The Entra ID login token could not be acquired or is missing the expected audience/tenant claims
+- The SharePoint root document library is not accessible for this user or tenant
+
+To be successful, the requestor should:
+- Confirm they are logged in with the correct Microsoft 365 account
+- Ensure the account belongs to the same tenant configured in `MSAL_TENANT_ID`
+- Confirm the app registration is configured with delegated permissions for `Files.ReadWrite.All` and `Sites.ReadWrite.All`
+- Ensure admin consent has been granted for those scopes if required by tenant policy
+- Verify they can manually upload a file to the target SharePoint site using the same account
+
+If this error persists, check the backend logs for a Graph API error response and verify the app registration + SharePoint access configuration.
 
 ### 9. **Role-Based Security**
 - **Requestor**: Authenticated via Azure AD/Entra ID, creates requests and invites
@@ -126,6 +152,58 @@ graph TD
 - Email delivery logs include recipient, timestamp, and case number
 - Download completion timestamps recorded
 
+## Request Number Generation Algorithm
+
+The system generates unique request numbers using the following algorithm:
+
+1. **Timestamp Component**: `Date.now().toString(36).toUpperCase()`
+   - Converts current Unix timestamp to base36 representation
+   - Uses uppercase letters for consistency
+
+2. **Random Component**: `Math.random().toString(36).substring(2, 10).toUpperCase()`
+   - Generates 8-character random string in base36
+   - Removes first 2 characters (`0.`) from Math.random() output
+   - Uses uppercase for consistency
+
+3. **Prefix**: `RQ-` (Request identifier)
+
+4. **Concatenation & Truncation**: `RQ-${timestamp}${random}`.substring(0, 16)
+   - Combines prefix, timestamp, and random components
+   - Truncates to exactly 16 characters to ensure consistency
+
+**Example Generation**:
+- Timestamp: `Date.now()` = 1703123456789
+- Base36: `VR3KLY8Z`
+- Random: `A0G9J2X`
+- Result: `RQ-VR3KLY8ZA0G9J2X` (truncated to 16 chars)
+
+## Detailed Workflow
+
+### Upload Request Flow
+1. **Request Creation**: Requestor creates upload request with optional manual case number
+2. **Auto-Generation**: System generates unique RQ-* request number
+3. **Email Dispatch**: Bilingual email sent with request number, optional case number, and secure upload link
+4. **File Upload**: Uploader receives email, enters portal, uploads file(s)
+5. **SAS Token**: Backend generates time-limited write-only SAS token for secure cloud upload
+6. **Malware Scanning**: Files quarantined and sent to Assemblyline for scanning
+- **Status Updates**: Request status progresses: Pending → Uploaded → Scanning → Clean/Malicious
+- **Security Restrictions**: Malicious files cannot be downloaded or shared; download buttons are disabled and appear red
+- **Individual File Status**: Multi-file uploads track status per file, allowing clean files to be downloaded while malicious ones are blocked
+8. **File Access**: Clean files become available for download or sharing
+
+### File Share Flow
+1. **File Selection**: Requestor selects clean file from completed upload request
+2. **Share Creation**: System generates new RQ-* request number and optional case number
+3. **Passcode Generation**: Auto-generates 8-character encrypted download passcode
+4. **Email Notification**: Downloader receives secure link with passcode
+5. **Download Access**: Downloader enters passcode and downloads file
+6. **Completion Tracking**: System records download timestamp and updates status
+
+### Status Lifecycle
+- **Upload Requests**: `Pending` → `Uploaded` → `Scanning` → `Clean`/`Malicious` → `Awaiting Download` → `Downloaded`
+- **Security Enforcement**: Files marked as `Malicious` cannot be downloaded or shared; UI shows disabled red buttons
+- **File Shares**: `Ready` → `Awaiting Download` → `Downloaded` (only created from clean files)
+
 ## Security Posture
 - **Masked Storage**: Uploaders never see the actual destination container. They are provided a short-lived (1-hour) Shared Access Signature (SAS) token permitting write-only execution to a specific generated blob name.
 - **Quarantine Pipeline**: All files are placed in an isolated blob path until scanned and explicitly marked as `Clean` by Assemblyline.
@@ -133,7 +211,7 @@ graph TD
 
 ## Environment Variables Configuration
 
-The application requires environment variables for both the backend and frontend to configure integrations with Azure, Entra ID (MSAL), GCNotify, and SMTP. Create a `.env` file in both the `backend/` and `frontend/` directories (you can use the `.env.dev` and `.env.example` files as templates).
+The application requires environment variables for both the backend and frontend to configure integrations with Azure, Entra ID (MSAL), GCNotify, Assemblyline, and SMTP. Create a `.env` file in both the `backend/` and `frontend/` directories by copying from the existing `.env.example` templates.
 
 ### Backend (`backend/.env`)
 
@@ -144,7 +222,8 @@ The application requires environment variables for both the backend and frontend
 | `AZURE_STORAGE_CONNECTION_STRING` | Connection string for Azure Storage. | `UseDevelopmentStorage=true` for local Azurite emulator. |
 | `AZURE_STORAGE_ACCOUNT_NAME` | The Azure storage account name. | Default is `devstoreaccount1` for Azurite. |
 | `AZURE_STORAGE_ACCOUNT_KEY` | The Azure storage account key. | Emulator key for Azurite, or production key. |
-| `AZURE_TABLE_NAME` | The Azure Table where requests are stored. | e.g., `UploadRequestsV2` |
+| `AZURE_TABLE_NAME` | The Azure Table where upload requests are stored. | e.g., `UploadRequestsV2` |
+| `AZURE_SHARE_TABLE_NAME` | The Azure Table where download share records are stored. | `DownloadShares` |
 | `AZURE_BLOB_CONTAINER_NAME` | The blob container for uploaded files. | e.g., `uploads` |
 | `AZURE_TABLE_URL` | Direct URL to Table Storage service. | Emulator URL (local) or cloud URL (prod). |
 | `AZURE_BLOB_URL` | Direct URL to Blob Storage service. | Emulator URL (local) or cloud URL (prod). |
@@ -153,6 +232,7 @@ The application requires environment variables for both the backend and frontend
 | `ASSEMBLYLINE_URL` | The URL for Assemblyline malware scanning service. | e.g., `mock` for local development. |
 | `MSAL_CLIENT_ID` | Entra ID (Azure AD) Client ID for backend token validation. | Your Entra ID application client ID. |
 | `MSAL_TENANT_ID` | Entra ID Tenant ID. | Your Entra ID tenant ID. |
+| `MSAL_EXPECTED_AUD` | Optional expected JWT audience claim. | Defaults to `MSAL_CLIENT_ID` if unset. |
 | `MSAL_REDIRECT_URI` | Redirect URI matching your Entra ID app setup. | e.g., `http://localhost:3001/auth/redirect` |
 | `MAILER_ENABLED` | Flag to enable SMTP email delivery. | `true` or `false` |
 | `MAILER_SMTP_ADDR` | SMTP server address. | e.g., `email-smtp.ca-central-1.amazonaws.com` |
@@ -160,6 +240,8 @@ The application requires environment variables for both the backend and frontend
 | `MAILER_FROM` | Sender email address for the notification emails. | e.g., `noreply@your-domain.com` |
 | `MAILER_USER` | SMTP authentication user username. | Your SMTP username. |
 | `MAILER_PASSWD` | SMTP authentication user password. | Your SMTP password. |
+
+The backend auth middleware validates the frontend Entra ID JWT by checking the tenant (`tid`), issuer (`iss`), client/app ID (`appid` or `azp`), and audience (`aud`) claims. `MSAL_EXPECTED_AUD` can be used to override the default audience validation value.
 
 ### Frontend (`frontend/.env`)
 
@@ -450,14 +532,65 @@ Triggered an immediate mock upload with a sample `test.txt` via an API pipeline 
 
 Bilingual Support (English/French)
 
-### Demo
+### Demo Frontend & Backend
 
-![Secure File Request Portal Login](img/image.png)
+The following new screenshots were added in chronological order by creation date. Each file shows a recent frontend or backend screen capture for uploader, requestor, multi-file, share, and downloader workflows.
 
-![Portail Sécurisé de Demande de Fichiers](img/image-1.png)
+- ![Secure File Request Portal Login](img/image.png)
 
-Federated User Login via Entra ID 
-![Requestor Dashboard](img/image-2.png)
+- ![Portail Sécurisé de Demande de Fichiers](img/image-1.png)
+
+- ![Multiple files not requested - English](img/multiple_fles_not_requested-en.png) `multiple_fles_not_requested-en.png` – Requestor/uploader state when multiple-file upload is not enabled, showing the single-file request flow.
+- ![Upload fulfilled confirmation - English](img/upload_fulfilled_en.png) `upload_fulfilled_en.png` – Confirmation screen after the uploader successfully finishes the upload.
+- ![Requestor status summary](img/upload_requestor_status.png) `upload_requestor_status.png` – Requestor dashboard showing current request progress and status indicators.
+- ![File share success - English](img/uploaded-file-share-success-en.png) `uploaded-file-share-success-en.png` – Confirmation that a shared file invitation was created successfully.
+- ![File share details - French](img/uploaded-file-share-fr.png) `uploaded-file-share-fr.png` – French-language view of shared file details and download status.
+- ![File share success - French](img/uploaded-file-share-success-fr.png) `uploaded-file-share-success-fr.png` – French confirmation page after a shared file is prepared.
+- ![File share details - English](img/uploaded-file-share-en.png) `uploaded-file-share-en.png` – English-language shared file detail and status screen.
+- ![Multi-file share ready - English](img/uploaded-multifile-share-ready-1-en.png) `uploaded-multifile-share-ready-1-en.png` – English multi-file share ready screen showing a file prepared for download.
+- ![Multi-file share ready - French](img/uploaded-multifile-share-ready-1-fr.png) `uploaded-multifile-share-ready-1-fr.png` – French multi-file share ready screen showing a share-ready entry.
+- ![Multi-file email upload complete - English](img/requestor-upload-multifile-email-link-uploading-2-complete-en.png) `requestor-upload-multifile-email-link-uploading-2-complete-en.png` – Requestor email view showing the second file upload completed in a multi-file request.
+- ![Multi-file email fulfilment - English](img/requestor-upload-multifile-email-link-uploading-2-fulfil-en.png) `requestor-upload-multifile-email-link-uploading-2-fulfil-en.png` – English email view with the second multi-file upload fulfilment state.
+- ![Multi-file email fulfilment - French](img/requestor-upload-multifile-email-link-uploading-2-fulfil-fr.png) `requestor-upload-multifile-email-link-uploading-2-fulfil-fr.png` – French email view for the second multi-file upload fulfilment.
+- ![Multi-file email complete - French](img/requestor-upload-multifile-email-link-uploading-2-complete-fr.png) `requestor-upload-multifile-email-link-uploading-2-complete-fr.png` – French requestor email showing the second upload completion.
+- ![Multi-file upload progress email - English](img/requestor-upload-multifile-email-link-uploading-2-en.png) `requestor-upload-multifile-email-link-uploading-2-en.png` – English requestor email showing second file upload in progress.
+- ![Multi-file upload progress email - French](img/requestor-upload-multifile-email-link-uploading-2-fr.png) `requestor-upload-multifile-email-link-uploading-2-fr.png` – French requestor email with the second file upload in progress.
+- ![Multi-file email upload link - French](img/requestor-upload-multifile-email-link-upload-fr.png) `requestor-upload-multifile-email-link-upload-fr.png` – French email containing the upload link for a multi-file request.
+- ![Multi-file upload first file progress - English](img/requestor-upload-multifile-email-link-uploading-1-en.png) `requestor-upload-multifile-email-link-uploading-1-en.png` – English requestor email showing first file upload progress for a multi-file request.
+- ![Multi-file upload first file progress - French](img/requestor-upload-multifile-email-link-uploading-1-fr.png) `requestor-upload-multifile-email-link-uploading-1-fr.png` – French requestor email showing first file upload progress.
+- ![Requestor multi-file email - French](img/requestor-upload-multifile-email-fr.png) `requestor-upload-multifile-email-fr.png` – French version of the multi-file upload request email.
+- ![Requestor multi-file email link - English](img/requestor-upload-multifile-email-link-upload-en.png) `requestor-upload-multifile-email-link-upload-en.png` – English version of the multi-file upload request email with the upload link.
+- ![Downloader downloaded status - French](img/file-downloader-downloaded-status-fr.png) `file-downloader-downloaded-status-fr.png` – French downloader page showing the completed download status.
+- ![Requestor multi-file request form - English](img/requestor-upload-multifile-en.png) `requestor-upload-multifile-en.png` – English requestor screen for creating a multi-file upload request.
+- ![Requestor multi-file request form - French](img/requestor-upload-multifile-fr.png) `requestor-upload-multifile-fr.png` – French requestor screen for creating a multi-file upload request.
+- ![Downloader downloaded status - English](img/file-downloader-downloaded-status-en.png) `file-downloader-downloaded-status-en.png` – English downloader page after the file has been successfully downloaded.
+- ![Downloader download page - English](img/file-downloader-downloadpage-en.png) `file-downloader-downloadpage-en.png` – English downloader page with the download action and passcode fields.
+- ![Downloader download page - French](img/file-downloader-downloadpage-fr.png) `file-downloader-downloadpage-fr.png` – French downloader page with download action and passcode entry.
+- ![Downloader email - English](img/file-downloader-email-en.png) `file-downloader-email-en.png` – English email sent to the downloader with link and passcode instructions.
+- ![Downloader email - French](img/file-downloader-email-fr.png) `file-downloader-email-fr.png` – French email sent to the downloader with link and passcode instructions.
+- ![Uploaded file malicious status - French](img/file-uploaded-status-malicious-fr.png) `file-uploaded-status-malicious-fr.png` – French requestor screen showing a file that was marked malicious.
+- ![Uploaded file malicious status - English](img/file-uploaded-status-malicious-en.png) `file-uploaded-status-malicious-en.png` – English requestor screen showing a file that was marked malicious.
+- ![Uploader success - French](img/uploader-uploaded-success-fr.png) `uploader-uploaded-success-fr.png` – French confirmation screen for a successful uploader upload.
+- ![Uploader success - English](img/uploader-uploaded-success-en.png) `uploader-uploaded-success-en.png` – English confirmation screen for a successful uploader upload.
+- ![Example PDF upload - English](img/upload-examplepdf-en.png) `upload-examplepdf-en.png` – English uploader screen demonstrating PDF upload guidance.
+- ![Example PDF upload - French](img/upload-examplepdf-fr.png) `upload-examplepdf-fr.png` – French uploader screen demonstrating PDF upload guidance.
+- ![Uploader link upload page - English](img/uploader-link-uploadfile-en.png) `uploader-link-uploadfile-en.png` – English uploader view displaying the secure upload link and instructions.
+- ![Uploader link upload page - French](img/uploader-link-uploadfile-fr.png) `uploader-link-uploadfile-fr.png` – French uploader view displaying the secure upload link and instructions.
+- ![Uploader secret passcode page - English](img/uploader-link-secret-passcode-en.png) `uploader-link-secret-passcode-en.png` – English uploader page showing the generated secret passcode for upload.
+- ![Uploader secret passcode page - French](img/uploader-link-secret-passcode-fr.png) `uploader-link-secret-passcode-fr.png` – French uploader page showing the generated secret passcode.
+- ![Downloader request email - French](img/downloader-request-email-fr.png) `downloader-request-email-fr.png` – French email shown when a downloader is invited to access a shared file.
+- ![Share file list ready - French](img/share-file-list-ready-fr.png) `share-file-list-ready-fr.png` – French requestor view of the share file list when shares are ready.
+- ![Downloader invite sent - English](img/file-uploaded-downloader-invite-sent-en.png) `file-uploaded-downloader-invite-sent-en.png` – English screen confirming the downloader invite was sent.
+- ![New share file for downloader - English](img/new-share-file-for-downloader-en.png) `new-share-file-for-downloader-en.png` – English shared-file request view after a new downloader share is created.
+- ![New share file for downloader - French](img/new-share-file-for-downloader-fr.png) `new-share-file-for-downloader-fr.png` – French shared-file request view after a new downloader share is created.
+- ![Share file list ready - English](img/share-file-list-ready-en.png) `share-file-list-ready-en.png` – English requestor view of ready file shares in the dashboard.
+- ![Active uploader request pending - English](img/active-uploader-request-pending-en.png) `active-uploader-request-pending-en.png` – English requestor dashboard showing an active uploader request in pending state.
+- ![Active uploader request pending - French](img/active-uploader-request-pending-fr.png) `active-uploader-request-pending-fr.png` – French requestor dashboard showing an active uploader request in pending state.
+- ![New uploader request form - English](img/new-uploader-request-en.png) `new-uploader-request-en.png` – English new uploader request creation form.
+- ![New uploader request form - French](img/new-uploader-request-fr.png) `new-uploader-request-fr.png` – French new uploader request creation form.
+
+### Demo (Archived)
+
 
 Creating new Request
 ![Request Details](img/image-3.png)
@@ -581,8 +714,9 @@ French version of email notification with bilingual content:
 All file requests and shares now include unique 16-character case numbers for audit and tracking purposes.
 
 #### Requestor Dashboard - Case Numbers in Upload Requests (English)
-Case number displayed prominently in the first column of the requests table:
+Case number displayed in the first column of the requests table:
 ![alt text](img/dashboard_case_numbers_requests_en.png)
+
 
 #### Requestor Dashboard - Case Numbers in Uploads (French)
 Dashboard view showing case numbers in French:
@@ -597,8 +731,9 @@ File share table with case numbers in French:
 ![alt text](img/dashboard_case_numbers_shares_fr.png)
 
 #### Case Number Format Reference
-Case numbers follow the format: `CASE-[8-char-timestamp][8-char-random]`
-- Example: `CASE-VR3KLY8ZA0G9J2X`
+Request numbers follow the format: `RQ-[timestamp-base36][random-base36]` (truncated to 16 chars)
+- Algorithm: Current timestamp converted to base36 uppercase, concatenated with 8-character random string in base36 uppercase, prefixed with "RQ-", and truncated to exactly 16 characters
+- Example: `RQ-VR3KLY8ZA0G9J2X`
 - Length: 16 characters maximum
 - Included in: Email subjects, email bodies, and all audit logs
 - Purpose: Unique tracking for compliance, auditing, and support reference
@@ -652,9 +787,9 @@ Dashboard showing various statuses in French:
 | **Action Required** | Upload a file | Download a pre-uploaded file |
 | **Security** | SAS token write-only, auto-generated 18-char passcode | Passcode + secure download link |
 | **Email Delivery** | GCNotify/SMTP | GCNotify/SMTP |
-| **Tracking** | Case number, status progression | Case number, download completion |
+| **Tracking** | Request number, status progression | Request number, download completion |
 | **Expiration** | Configurable (1,7,14,30 days) | Configurable (1,7,14,30 days) |
-| **Status** | Pending → Uploaded → Scanning → Clean/Malicious | Ready → Awaiting Download → Downloaded |
+| **Status** | Pending → Uploaded → Scanning → Clean/Malicious (with security restrictions) | Ready → Awaiting Download → Downloaded |
 | **File Storage** | Azure Blob Storage | Azure Blob Storage |
 | **Metadata** | UploadRequests table | DownloadShares table |
 | **Sharing Condition** | Only when file status = "Clean" | Only when file status = "Clean" |

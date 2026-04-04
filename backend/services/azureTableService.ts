@@ -28,7 +28,8 @@ export interface UploadRequestRecord {
     isClosed?: boolean;
     downloaderEmail?: string;
     downloadSecretHash?: string;
-    caseNumber: string;
+    requestNumber: string;
+    caseNumber?: string;
     sharedForDownload?: boolean;
     downloadCompletedAt?: Date;
 }
@@ -41,7 +42,8 @@ export interface DownloadShareRecord {
     expiresAt: Date;
     downloadSecretHash?: string;
     downloaderEmail?: string;
-    caseNumber: string;
+    requestNumber: string;
+    caseNumber?: string;
     downloadCompletedAt?: Date;
 }
 
@@ -68,10 +70,10 @@ export async function initTable(): Promise<void> {
     }
 }
 
-export function generateCaseNumber(): string {
+export function generateRequestNumber(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 10).toUpperCase();
-    return `CASE-${timestamp}${random}`.substring(0, 16);
+    return `RQ-${timestamp}${random}`.substring(0, 16);
 }
 
 export async function createUploadRequest(
@@ -80,10 +82,11 @@ export async function createUploadRequest(
     requestedFileTypes: string, 
     secretHash?: string, 
     expirationDays: number = 7,
-    allowMultiple: boolean = false
+    allowMultiple: boolean = false,
+    manualCaseNumber?: string
 ): Promise<Partial<UploadRequest>> {
     const token = uuidv4();
-    const caseNumber = generateCaseNumber();
+    const requestNumber = generateRequestNumber();
     const entity: any = {
         partitionKey: requestorEmail,
         rowKey: token,
@@ -94,7 +97,8 @@ export async function createUploadRequest(
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
         allowMultiple,
-        caseNumber
+        requestNumber,
+        caseNumber: manualCaseNumber || ''
     };
     
     console.log('Inserting entity:', JSON.stringify(entity, null, 2));
@@ -155,9 +159,10 @@ export async function createDownloadShare(
     token: string,
     blobName: string,
     originalFilename: string,
-    expirationDays: number = 7
+    expirationDays: number = 7,
+    manualCaseNumber?: string
 ): Promise<Partial<DownloadShare>> {
-    const caseNumber = generateCaseNumber();
+    const requestNumber = generateRequestNumber();
     const entity: any = {
         partitionKey: requestorEmail,
         rowKey: token,
@@ -165,7 +170,8 @@ export async function createDownloadShare(
         originalFilename,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
-        caseNumber
+        requestNumber,
+        caseNumber: manualCaseNumber || ''
     };
 
     try {
