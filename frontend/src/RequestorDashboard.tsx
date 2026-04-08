@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useMemo } from 'react';
 import axios from 'axios';
 import { Plus, Download, RefreshCw, Upload } from 'lucide-react';
 
@@ -35,6 +35,8 @@ interface FileShare {
   requestNumber: string;
   caseNumber: string;
 }
+type SortDirection = 'asc' | 'desc';
+interface SortConfig<T> { key: keyof T | ''; direction: SortDirection }
 
 export default function RequestorDashboard() {
   const { instance, accounts } = useMsal();
@@ -75,6 +77,56 @@ export default function RequestorDashboard() {
   });
   const [loading, setLoading] = useState(false);
   
+  const [requestSort, setRequestSort] = useState<SortConfig<UploadRequest>>({ key: '', direction: 'asc' });
+  const [shareSort, setShareSort] = useState<SortConfig<FileShare>>({ key: '', direction: 'asc' });
+
+  const handleRequestSort = (key: keyof UploadRequest) => {
+    setRequestSort(prev => {
+      if (prev.key === key) return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const handleShareSort = (key: keyof FileShare) => {
+    setShareSort(prev => {
+      if (prev.key === key) return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const sortedRequests = useMemo(() => {
+    let sortableItems = [...requests];
+    if (requestSort.key !== '') {
+      sortableItems.sort((a, b) => {
+        const aVal = a[requestSort.key as keyof UploadRequest] || '';
+        const bVal = b[requestSort.key as keyof UploadRequest] || '';
+        if (aVal < bVal) return requestSort.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return requestSort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [requests, requestSort]);
+
+  const sortedShares = useMemo(() => {
+    let sortableItems = [...shares];
+    if (shareSort.key !== '') {
+      sortableItems.sort((a, b) => {
+        const aVal = a[shareSort.key as keyof FileShare] || '';
+        const bVal = b[shareSort.key as keyof FileShare] || '';
+        if (aVal < bVal) return shareSort.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return shareSort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [shares, shareSort]);
+
+  const getSortIndicator = (config: SortConfig<any>, key: string) => {
+    if (config.key === key) return config.direction === 'asc' ? ' ↑' : ' ↓';
+    return '';
+  };
+
   useEffect(() => {
     fetchRequests();
     fetchShares();
@@ -464,17 +516,17 @@ export default function RequestorDashboard() {
         <table className="table">
           <thead>
             <tr>
-              <th scope="col">{t('table_request_number', lang)}</th>
-              <th scope="col">{t('table_case_number', lang)}</th>
-              <th scope="col">{t('table_uploader', lang)}</th>
-              <th scope="col">{t('table_type', lang)}</th>
-              <th scope="col">{t('table_status', lang)}</th>
-              <th scope="col">{t('table_expires', lang)}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('requestNumber')}>{t('table_request_number', lang)}{getSortIndicator(requestSort, 'requestNumber')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('caseNumber')}>{t('table_case_number', lang)}{getSortIndicator(requestSort, 'caseNumber')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('uploaderEmail')}>{t('table_uploader', lang)}{getSortIndicator(requestSort, 'uploaderEmail')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('requestedFileTypes')}>{t('table_type', lang)}{getSortIndicator(requestSort, 'requestedFileTypes')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('status')}>{t('table_status', lang)}{getSortIndicator(requestSort, 'status')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('expiresAt')}>{t('table_expires', lang)}{getSortIndicator(requestSort, 'expiresAt')}</th>
               <th scope="col">{t('table_action', lang)}</th>
             </tr>
           </thead>
           <tbody>
-            {requests.map(req => (
+            {sortedRequests.map(req => (
               <tr key={req.rowKey}>
                 <td><strong>{req.requestNumber}</strong></td>
                 <td><strong>{req.caseNumber || '--'}</strong></td>
@@ -540,17 +592,17 @@ export default function RequestorDashboard() {
         <table className="table" style={{ marginTop: '1em' }}>
           <thead>
             <tr>
-              <th scope="col">{t('table_request_number', lang)}</th>
-              <th scope="col">{t('table_case_number', lang)}</th>
-              <th scope="col">{t('table_filename', lang)}</th>
-              <th scope="col">{t('table_status', lang)}</th>
-              <th scope="col">{t('table_downloader', lang)}</th>
-              <th scope="col">{t('table_expires', lang)}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('requestNumber')}>{t('table_request_number', lang)}{getSortIndicator(shareSort, 'requestNumber')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('caseNumber')}>{t('table_case_number', lang)}{getSortIndicator(shareSort, 'caseNumber')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('originalFilename')}>{t('table_filename', lang)}{getSortIndicator(shareSort, 'originalFilename')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('status')}>{t('table_status', lang)}{getSortIndicator(shareSort, 'status')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('downloaderEmail')}>{t('table_downloader', lang)}{getSortIndicator(shareSort, 'downloaderEmail')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('expiresAt')}>{t('table_expires', lang)}{getSortIndicator(shareSort, 'expiresAt')}</th>
               <th scope="col">{t('table_action', lang)}</th>
             </tr>
           </thead>
           <tbody>
-            {shares.map(share => (
+            {sortedShares.map(share => (
               <tr key={share.rowKey}>
                 <td><strong>{share.requestNumber}</strong></td>
                 <td><strong>{share.caseNumber || '--'}</strong></td>
