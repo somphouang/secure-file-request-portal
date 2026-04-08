@@ -152,6 +152,14 @@ If this error persists, check the backend logs for a Graph API error response an
 - Email delivery logs include recipient, timestamp, and case number
 - Download completion timestamps recorded
 
+### 11. **Requestor Groups & Access Control** (New)
+- Introduced requestor groups handling to manage permissions more effectively
+- Enhanced access control and improved user flows across the portal
+
+### 12. **Enhanced Validation & Localization** (New)
+- Comprehensive localization improvements for the file upload and download workflows
+- Added stronger validation checks to guarantee robust secure file transfers
+
 ## Request Number Generation Algorithm
 
 The system generates unique request numbers using the following algorithm:

@@ -11,6 +11,8 @@ declare global {
         interface Request {
             user?: {
                 preferred_username: string;
+                roles?: string[];
+                groups?: string[];
             };
         }
     }
@@ -98,7 +100,19 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
         return res.status(401).json({ error: 'Authorization token does not contain a valid user identity' });
     }
 
-    req.user = { preferred_username: preferredUsername };
+    const roles = Array.isArray(decoded.roles)
+        ? decoded.roles.map((value: any) => value.toString())
+        : decoded.roles ? [decoded.roles.toString()] : [];
+
+    const groups = Array.isArray(decoded.groups)
+        ? decoded.groups.map((value: any) => value.toString())
+        : decoded.groups ? [decoded.groups.toString()] : [];
+
+    req.user = {
+        preferred_username: preferredUsername,
+        roles,
+        groups
+    };
     next();
 };
 
