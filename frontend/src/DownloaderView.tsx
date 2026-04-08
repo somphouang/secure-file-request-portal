@@ -82,7 +82,7 @@ export default function DownloaderView() {
         <p>{t('download_portal_desc', lang)}</p>
         <form onSubmit={validateSecret}> 
           <div className="form-group">
-            <label htmlFor="downloadSecret">Passcode</label>
+            <label htmlFor="downloadSecret">{t('passcode_label', lang)}</label>
             <input id="downloadSecret" className="form-control" type="password" required value={secret} onChange={e => setSecret(e.target.value)} />
           </div>
           {error && <div className="alert alert-danger">{error}</div>}
@@ -98,7 +98,7 @@ export default function DownloaderView() {
       <p>{t('download_portal_desc', lang)}</p>
       {requestInfo?.caseNumber && (
         <div style={{ marginBottom: '1em', padding: '1em', backgroundColor: '#f0f0f0', borderLeft: '4px solid #0066cc' }}>
-          <strong>Case Number:</strong> {requestInfo.caseNumber}
+          <strong>{t('case_number_label', lang)}</strong> {requestInfo.caseNumber}
         </div>
       )}
       {requestInfo?.blobUri ? (

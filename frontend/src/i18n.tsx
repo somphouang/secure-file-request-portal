@@ -149,7 +149,21 @@ const dict = {
     validate_passcode: "Validate Passcode",
     available_files: "Available files for download:",
     no_files_available: "No files are currently ready for download.",
-    download_error: "Failed to generate download link. Check passcode or request status."
+    download_error: "Failed to generate download link. Check passcode or request status.",
+    verify_access: "Verify Access",
+    shared_file_auth_desc: "Enter the passcode sent to your email to access this shared file.",
+    passcode_label: "Passcode",
+    passcode_placeholder: "Enter passcode",
+    verify: "Verify",
+    download_file: "Download File",
+    file_label: "File:",
+    case_number_label: "Case Number:",
+    file_not_ready: "File is not yet ready for download.",
+    share_access_error: "Unable to access this share.",
+    invalid_passcode: "Invalid passcode",
+    upload_complete_single_file: "Upload complete! Multiple file uploads are not permitted for this request.",
+    upload_more_files_allowed: "You are permitted to upload additional files.",
+    files_uploaded_for_request: "Files successfully uploaded for this request:"
   },
   fr: {
     goc: "Gouvernement du Canada",
@@ -266,6 +280,20 @@ const dict = {
     validate_passcode: "Valider le Code",
     available_files: "Fichiers disponibles au téléchargement:",
     no_files_available: "Aucun fichier n'est actuellement prêt au téléchargement.",
-    download_error: "Échec de la génération du lien de téléchargement. Vérifiez le code d'accès ou l'état de la demande."
+    download_error: "Échec de la génération du lien de téléchargement. Vérifiez le code d'accès ou l'état de la demande.",
+    verify_access: "Vérifier l'accès",
+    shared_file_auth_desc: "Entrez le code d'accès envoyé à votre courriel pour accéder à ce fichier partagé.",
+    passcode_label: "Code secret",
+    passcode_placeholder: "Entrez le code",
+    verify: "Vérifier",
+    download_file: "Télécharger le fichier",
+    file_label: "Fichier:",
+    case_number_label: "Numéro de cas:",
+    file_not_ready: "Le fichier n'est pas encore prêt pour le téléchargement.",
+    share_access_error: "Impossible d'accéder à ce partage.",
+    invalid_passcode: "Code secret invalide",
+    upload_complete_single_file: "Téléversement terminé! Plusieurs fichiers ne sont pas autorisés pour cette demande.",
+    upload_more_files_allowed: "Vous pouvez téléverser des fichiers supplémentaires.",
+    files_uploaded_for_request: "Fichiers téléversés avec succès pour cette demande :"
   }
 };

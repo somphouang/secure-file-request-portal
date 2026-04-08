@@ -27,6 +27,7 @@ export default function UploaderView() {
   const [status, setStatus] = useState('loading'); // loading, ready (auth needed), authenticated, uploading, success, error, already_uploaded
   const [secret, setSecret] = useState('');
   const [secretError, setSecretError] = useState('');
+  const [fileError, setFileError] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +65,21 @@ export default function UploaderView() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      const allowedExtensions = requestInfo?.requestedFileTypes
+        .split(',')
+        .map(ext => ext.trim().toLowerCase().replace(/^[\.]/, ''))
+        .filter(Boolean) || [];
+      const fileExt = selectedFile.name.split('.').pop()?.toLowerCase() || '';
+
+      if (allowedExtensions.length > 0 && fileExt && !allowedExtensions.includes(fileExt)) {
+        setFile(null);
+        setFileError(`Invalid file type. Allowed: ${requestInfo?.requestedFileTypes}`);
+        return;
+      }
+
+      setFile(selectedFile);
+      setFileError('');
     }
   };
 
@@ -126,7 +141,7 @@ export default function UploaderView() {
       <p>{t('portal_desc', lang)}</p>
       {requestInfo?.caseNumber && (
         <div style={{ marginBottom: '1em', padding: '1em', backgroundColor: '#f0f0f0', borderLeft: '4px solid #0066cc' }}>
-          <strong>Case Number:</strong> {requestInfo.caseNumber}
+          <strong>{t('case_number_label', lang)}</strong> {requestInfo.caseNumber}
         </div>
       )}
 
@@ -158,19 +173,19 @@ export default function UploaderView() {
 
           {requestInfo.blobUri && !requestInfo.allowMultiple && (
             <div className="alert alert-success" style={{ marginBottom: '1.5em' }}>
-              <strong>Upload complete! Multiple file uploads are not permitted for this request.</strong>
+              <strong>{t('upload_complete_single_file', lang)}</strong>
             </div>
           )}
           
           {requestInfo.blobUri && requestInfo.allowMultiple && (
             <div className="alert alert-info" style={{ marginBottom: '1.5em' }}>
-              <strong>Files successfully uploaded for this request:</strong>
+              <strong>{t('files_uploaded_for_request', lang)}</strong>
               <ul style={{ margin: '0.5em 0 0', paddingLeft: '1.5em' }}>
                 {requestInfo.blobUri.split(',').map((blob: string, idx: number) => (
                   <li key={idx}>{blob}</li>
                 ))}
               </ul>
-              <p style={{ marginTop: '0.5em' }}>You are permitted to upload additional files.</p>
+              <p style={{ marginTop: '0.5em' }}>{t('upload_more_files_allowed', lang)}</p>
             </div>
           )}
 
@@ -204,6 +219,11 @@ export default function UploaderView() {
               tabIndex={-1}
             />
           </div>
+          {fileError && (
+            <div className="alert alert-danger" role="alert" style={{ marginTop: '1em' }}>
+              {fileError}
+            </div>
+          )}
 
           <div style={{ marginTop: '2em', display: 'flex', gap: '10px' }}>
             <button 

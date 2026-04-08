@@ -107,6 +107,19 @@ export const validateSecret = async (req: Request, res: Response) => {
     }
 };
 
+const parseAllowedExtensions = (requestedFileTypes?: string): string[] => {
+    if (!requestedFileTypes) return [];
+    return requestedFileTypes
+        .split(',')
+        .map(ext => ext.trim().toLowerCase().replace(/^\./, ''))
+        .filter(Boolean);
+};
+
+const isExtensionAllowed = (filename: string, allowedExtensions: string[]): boolean => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    return !!ext && allowedExtensions.includes(ext);
+};
+
 export const generateUploadSas = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
@@ -124,7 +137,17 @@ export const generateUploadSas = async (req: Request, res: Response) => {
             if (!isValid) return res.status(401).json({ error: 'Invalid secret' });
         }
 
-        const ext = filename ? (filename as string).split('.').pop() : 'bin';
+        const allowedExtensions = parseAllowedExtensions(request.requestedFileTypes);
+        if (!filename || typeof filename !== 'string') {
+            return res.status(400).json({ error: 'Filename required' });
+        }
+
+        const normalizedFilename = filename.toString();
+        const ext = normalizedFilename.split('.').pop()?.toLowerCase();
+        if (!ext || (allowedExtensions.length > 0 && !isExtensionAllowed(normalizedFilename, allowedExtensions))) {
+            return res.status(400).json({ error: `Invalid file type. Allowed types: ${request.requestedFileTypes}` });
+        }
+
         const blobName = `${token}-${Date.now()}.${ext}`;
 
         const sasInfo = azureBlobService.generateUploadSasToken(blobName);
@@ -141,6 +164,16 @@ export const confirmUpload = async (req: Request, res: Response) => {
 
         const request = await azureTableService.getRequestByTokenOnly(token);
         if (!request) return res.status(404).json({ error: 'Not found' });
+
+        const allowedExtensions = parseAllowedExtensions(request.requestedFileTypes);
+        if (!blobName || typeof blobName !== 'string') {
+            return res.status(400).json({ error: 'blobName required' });
+        }
+
+        const extension = blobName.split('.').pop()?.toLowerCase();
+        if (!extension || (allowedExtensions.length > 0 && !isExtensionAllowed(blobName, allowedExtensions))) {
+            return res.status(400).json({ error: `File type not permitted. Allowed types: ${request.requestedFileTypes}` });
+        }
 
         await azureTableService.updateRequestStatus(request.partitionKey!, token, {
             status: 'Uploaded',
@@ -185,14 +218,20 @@ export const listRequestorUploads = async (req: Request, res: Response) => {
     }
 };
 
+import crypto from 'crypto';
+
+const generateSecret = (length: number = 32) => {
+    // Generate a strong, URL-safe secret string of the requested length.
+    // 24 random bytes => 32 base64url characters.
+    return crypto.randomBytes(Math.ceil(length * 3 / 4)).toString('base64url').slice(0, length);
+};
+
 const generatePasscode = () => {
-    // Stronger random passcode with numbers/letters
-    return Math.random().toString(36).slice(-8).toUpperCase();
+    return generateSecret(32);
 };
 
 const generateUploaderSecret = () => {
-    // Generate 18-character secret for uploader requests
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15).toUpperCase();
+    return generateSecret(32);
 };
 
 export const uploadFileForSharing = async (req: Request, res: Response) => {
@@ -450,7 +489,8 @@ export const inviteDownloader = async (req: Request, res: Response) => {
             targetBlobName,
             originalFilename,
             Math.max(1, effectiveExpirationDays),
-            request.caseNumber || undefined
+            request.caseNumber || undefined,
+            targetBlobName
         );
 
         // Update the share with downloader info and send invitation

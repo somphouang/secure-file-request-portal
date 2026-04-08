@@ -35,7 +35,7 @@ export default function ShareDownloadView() {
       })
       .catch(() => {
         setStatus('error');
-        setError('Unable to access this share.');
+        setError(t('share_access_error', lang));
       });
   }, [token, lang]);
 
@@ -49,7 +49,7 @@ export default function ShareDownloadView() {
       setError('');
     } catch (err: any) {
       setStatus('auth');
-      setError('Invalid passcode');
+      setError(t('invalid_passcode', lang));
     }
   };
 
@@ -88,11 +88,11 @@ export default function ShareDownloadView() {
 
       {status === 'auth' && (
         <fieldset>
-          <legend>Verify Access</legend>
-          <p>Enter the passcode sent to your email to access this shared file.</p>
+          <legend>{t('verify_access', lang)}</legend>
+          <p>{t('shared_file_auth_desc', lang)}</p>
           <form onSubmit={validateSecret}>
             <div className="form-group">
-              <label htmlFor="downloadSecret">Passcode</label>
+              <label htmlFor="downloadSecret">{t('passcode_label', lang)}</label>
               <input 
                 id="downloadSecret" 
                 className="form-control" 
@@ -100,30 +100,30 @@ export default function ShareDownloadView() {
                 required 
                 value={secret} 
                 onChange={e => setSecret(e.target.value)} 
-                placeholder="Enter passcode"
+                placeholder={t('passcode_placeholder', lang)}
               />
             </div>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
-            <button type="submit" className="btn btn-primary">Verify</button>
+            <button type="submit" className="btn btn-primary">{t('verify', lang)}</button>
           </form>
         </fieldset>
       )}
 
       {status === 'ready' && shareInfo && (
         <fieldset>
-          <legend>Download File</legend>
+          <legend>{t('download_file', lang)}</legend>
           {shareInfo.caseNumber && (
             <div style={{ marginBottom: '1em', padding: '1em', backgroundColor: '#f0f0f0', borderLeft: '4px solid #0066cc' }}>
-              <strong>Case Number:</strong> {shareInfo.caseNumber}
+              <strong>{t('case_number_label', lang)}</strong> {shareInfo.caseNumber}
             </div>
           )}
-          <p><strong>File:</strong> {shareInfo.originalFilename}</p>
+          <p><strong>{t('file_label', lang)}</strong> {shareInfo.originalFilename}</p>
           {shareInfo.blobUri ? (
             <button className="btn btn-success" onClick={handleDownload}>
-              Download {shareInfo.originalFilename}
+              {t('download', lang)} {shareInfo.originalFilename}
             </button>
           ) : (
-            <div className="alert alert-warning">File is not yet ready for download.</div>
+            <div className="alert alert-warning">{t('file_not_ready', lang)}</div>
           )}
         </fieldset>
       )}

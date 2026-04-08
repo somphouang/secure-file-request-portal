@@ -160,19 +160,23 @@ export async function createDownloadShare(
     blobName: string,
     originalFilename: string,
     expirationDays: number = 7,
-    manualCaseNumber?: string
+    manualCaseNumber?: string,
+    blobUri?: string
 ): Promise<Partial<DownloadShare>> {
     const requestNumber = generateRequestNumber();
     const entity: any = {
         partitionKey: requestorEmail,
         rowKey: token,
-        status: 'Pending',
+        status: blobUri ? 'Ready' : 'Pending',
         originalFilename,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
         requestNumber,
         caseNumber: manualCaseNumber || ''
     };
+    if (blobUri) {
+        entity.blobUri = blobUri;
+    }
 
     try {
         await shareTableClient.createEntity(entity);
