@@ -28,8 +28,16 @@ export default function UploaderView() {
   const [secret, setSecret] = useState('');
   const [secretError, setSecretError] = useState('');
   const [fileError, setFileError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   useEffect(() => {
     axios.get<RequestInfo>(`${API_BASE}/requests/${token}`)
@@ -60,6 +68,21 @@ export default function UploaderView() {
       }
     } catch (err) {
       setSecretError(t('invalid_link_desc', lang));
+    }
+  };
+
+  const handleSend2fa = async () => {
+    try {
+      await axios.post(`${API_BASE}/requests/${token}/send-uploader-2fa`);
+      setCooldown(60);
+      setSecretError('');
+      alert('2FA Passcode sent to your email.');
+    } catch (err: any) {
+      if (err.response?.status === 429) {
+        setSecretError('Please wait 1 minute before requesting another code.');
+      } else {
+        setSecretError('Failed to send 2FA code.');
+      }
     }
   };
 
@@ -162,7 +185,12 @@ export default function UploaderView() {
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary">{t('access_portal', lang)}</button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" className="btn btn-primary">{t('access_portal', lang)}</button>
+              <button type="button" className="btn btn-default" onClick={handleSend2fa} disabled={cooldown > 0}>
+                {cooldown > 0 ? `Wait ${cooldown}s` : 'Send Passcode'}
+              </button>
+            </div>
           </form>
         </fieldset>
       )}

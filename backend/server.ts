@@ -4,6 +4,10 @@ import cors from 'cors';
 import { initTable } from './services/azureTableService.js';
 import { initBlob } from './services/azureBlobService.js';
 import * as uploadController from './controllers/uploadController.js';
+import swaggerUi from 'swagger-ui-express';
+import fs from 'fs';
+import yaml from 'yaml';
+import path from 'path';
 
 // Extend Express Request to include user context
 declare global {
@@ -21,6 +25,19 @@ declare global {
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Load and serve Swagger
+try {
+    const yamlPath = fs.existsSync(path.resolve(__dirname, 'swagger.yaml'))
+        ? path.resolve(__dirname, 'swagger.yaml')
+        : path.resolve(__dirname, '../swagger.yaml');
+        
+    const file = fs.readFileSync(yamlPath, 'utf8');
+    const swaggerDocument = yaml.parse(file);
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+} catch (e) {
+    console.warn('Swagger YAML file could not be loaded, skipping UI docs.', e);
+}
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err);
@@ -128,6 +145,8 @@ app.get('/api/shares', authMiddleware, uploadController.getDownloadShares);
 app.post('/api/shares/:token/invite', authMiddleware, uploadController.inviteDownloaderToShare);
 
 app.get('/api/public/requests/:token', uploadController.getRequestInfo);
+app.post('/api/public/requests/:token/send-uploader-2fa', uploadController.sendUploader2fa);
+app.post('/api/public/requests/:token/send-downloader-2fa', uploadController.sendDownloader2fa);
 app.post('/api/public/requests/:token/validate-secret', uploadController.validateSecret);
 app.post('/api/public/requests/:token/validate-download', uploadController.validateDownloadSecret);
 app.get('/api/public/requests/:token/download', uploadController.generateDownloadSasForDownloader);
@@ -137,6 +156,7 @@ app.post('/api/public/requests/:token/confirm', uploadController.confirmUpload);
 app.post('/api/public/requests/:token/complete', uploadController.closeRequest);
 
 app.get('/api/public/shares/:token', uploadController.getShareInfo);
+app.post('/api/public/shares/:token/send-download-2fa', uploadController.sendShareDownloader2fa);
 app.post('/api/public/shares/:token/validate-download', uploadController.validateShareDownloadSecret);
 app.get('/api/public/shares/:token/download', uploadController.generateShareDownloadSas);
 app.post('/api/public/shares/:token/mark-download-complete', uploadController.markShareDownloadComplete);

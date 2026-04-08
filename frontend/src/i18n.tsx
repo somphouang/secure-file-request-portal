@@ -163,7 +163,10 @@ const dict = {
     invalid_passcode: "Invalid passcode",
     upload_complete_single_file: "Upload complete! Multiple file uploads are not permitted for this request.",
     upload_more_files_allowed: "You are permitted to upload additional files.",
-    files_uploaded_for_request: "Files successfully uploaded for this request:"
+    files_uploaded_for_request: "Files successfully uploaded for this request:",
+    identifier_name: "Identifier Name",
+    identifier_value: "Identifier Value",
+    json_metadata: "JSON Metadata"
   },
   fr: {
     goc: "Gouvernement du Canada",
@@ -294,6 +297,9 @@ const dict = {
     invalid_passcode: "Code secret invalide",
     upload_complete_single_file: "Téléversement terminé! Plusieurs fichiers ne sont pas autorisés pour cette demande.",
     upload_more_files_allowed: "Vous pouvez téléverser des fichiers supplémentaires.",
-    files_uploaded_for_request: "Fichiers téléversés avec succès pour cette demande :"
+    files_uploaded_for_request: "Fichiers téléversés avec succès pour cette demande :",
+    identifier_name: "Nom de l'identifiant",
+    identifier_value: "Valeur de l'identifiant",
+    json_metadata: "Métadonnées JSON"
   }
 };

@@ -102,13 +102,18 @@ graph TD
 - **Secure Hashing**: Passcodes are bcrypt-hashed before storage, plaintext only in emails
 - **Format**: Alphanumeric characters (similar to downloader passcodes but 18 chars vs 8 chars)
 
-### 7. **Multi-File Upload**
+### 7. **True 2FA Security with Cooldown** (New)
+- **Time-of-Use Delivery**: Passcodes are *no longer* sent alongside the initial URL link to external users. Instead, when external users access the portal link, they must actively click "Send Passcode" to receive their secure code.
+- **6-Digit Secure Codes**: Uploader and Downloader 2FA codes are now short, 6-digit numeric codes generated on-the-fly to ensure faster data entry and improved user experience.
+- **1-Minute Timeout Enforcement**: To prevent email spamming or API abuse, requesting a 2FA code disables the "Send Passcode" button and institutes a strict 60-second cooldown timer. The server rejects 2FA requests made within 1 minute of a previous code delivery.
+
+### 8. **Multi-File Upload**
 - Requestors can allow uploaders to submit multiple files in a single request
 - Checkbox option in request creation
 - Individual file scanning with aggregated status
 - Uploader experience varies based on requestor's configuration
 
-### 8. **SharePoint Integration** (New)
+### 9. **SharePoint Integration** (New)
 - **One-Click Upload**: "Share to SharePoint" button appears next to clean files only
 - **Entra ID Authentication**: Uses the requestor's Microsoft 365 identity and token acquisition via MSAL
 - **Microsoft Graph API**: Secure file upload to the user’s default SharePoint root drive
@@ -793,3 +798,31 @@ If you are ready for production and want the ability to send requests to *any* u
 2. Under the "Account details" section, look for a banner or button that says **Request production access** (or "Edit your account details" to move out of the sandbox).
 3. Fill out the application form explaining your use case (e.g., "This application is a secure file upload portal for the Government of Canada, and we need to send temporary upload links to external citizens and businesses").
 4. Submit the request. AWS usually approves these requests within 24 hours. Once approved, your application can send emails to any valid address globally.
+
+### API Routes Reference
+
+#### Protected Endpoints (Requires Microsoft Entra ID Barer Token):
+* `POST /api/requests` - Create a new upload request for an external user.
+* `GET /api/requests` - Retrieve all upload requests for your team.
+* `GET /api/requests/:token/download` - Get Azure SAS to download an uploaded file.
+* `POST /api/requests/:token/invite-downloader` - Invite an external downloader to a submitted file.
+* `POST /api/shares/upload` - Request a SAS to upload a new direct file share.
+* `POST /api/shares/confirm` - Confirm completion of a direct file share.
+* `GET /api/shares` - Retrieve your direct file shares.
+* `POST /api/shares/:token/invite` - Send a file share access email to a downloader.
+
+#### Public Endpoints (Uploader/Downloader Interfaces):
+* `GET /api/public/requests/:token` - Get basic info/validation of an upload request.
+* `POST /api/public/requests/:token/send-uploader-2fa` - Email a 6-digit uploader 2FA code.
+* `POST /api/public/requests/:token/send-downloader-2fa` - Email a 6-digit downloader 2FA code.
+* `POST /api/public/requests/:token/validate-secret` - Authorize an uploader using 2FA.
+* `POST /api/public/requests/:token/validate-download` - Authorize a downloader using 2FA.
+* `POST /api/public/requests/:token/sas` - Generate Azure SAS to directly upload a mapped file.
+* `POST /api/public/requests/:token/confirm` - Confirm a new file was uploaded into Azure.
+* `GET /api/public/requests/:token/download` - Get SAS URL for downloading a file securely.
+* `POST /api/public/requests/:token/mark-download-complete` - Mark a secure file as successfully downloaded.
+* `GET /api/public/shares/:token` - Get basic info of a file share map.
+* `POST /api/public/shares/:token/send-download-2fa` - Trigger 2FA to a share recipient.
+* `POST /api/public/shares/:token/validate-download` - Authorize a share recipient using 2FA.
+* `GET /api/public/shares/:token/download` - Create SAS URL for the share.
+* `POST /api/public/shares/:token/mark-download-complete` - Mark share download map as completely downloaded.
