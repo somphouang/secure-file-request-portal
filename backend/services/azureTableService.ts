@@ -32,6 +32,7 @@ export interface UploadRequestRecord {
     caseNumber?: string;
     sharedForDownload?: boolean;
     downloadCompletedAt?: Date;
+    requestorGroups?: string;
 }
 
 export interface DownloadShareRecord {
@@ -83,7 +84,8 @@ export async function createUploadRequest(
     secretHash?: string, 
     expirationDays: number = 7,
     allowMultiple: boolean = false,
-    manualCaseNumber?: string
+    manualCaseNumber?: string,
+    requestorGroups?: string
 ): Promise<Partial<UploadRequest>> {
     const token = uuidv4();
     const requestNumber = generateRequestNumber();
@@ -100,6 +102,9 @@ export async function createUploadRequest(
         requestNumber,
         caseNumber: manualCaseNumber || ''
     };
+    if (requestorGroups) {
+        entity.requestorGroups = requestorGroups;
+    }
     
     console.log('Inserting entity:', JSON.stringify(entity, null, 2));
 
@@ -110,6 +115,15 @@ export async function createUploadRequest(
         throw error;
     }
     return entity;
+}
+
+export async function getAllUploadRequests(): Promise<UploadRequest[]> {
+    const requests: UploadRequest[] = [];
+    const entities = tableClient.listEntities<UploadRequest>();
+    for await (const entity of entities) {
+        requests.push(entity);
+    }
+    return requests;
 }
 
 export async function getUploadRequest(requestorEmail: string, token: string): Promise<UploadRequest | null> {
