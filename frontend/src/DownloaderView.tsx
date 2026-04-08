@@ -24,6 +24,14 @@ export default function DownloaderView() {
   const [status, setStatus] = useState<'loading' | 'auth' | 'ready' | 'error'>('loading');
   const [secret, setSecret] = useState('');
   const [error, setError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   useEffect(() => {
     if (!token) return;
@@ -49,6 +57,21 @@ export default function DownloaderView() {
     } catch (err: any) {
       setStatus('auth');
       setError(t('invalid_link_desc', lang));
+    }
+  };
+
+  const handleSend2fa = async () => {
+    try {
+      await axios.post(`${API_BASE}/requests/${token}/send-downloader-2fa`);
+      setCooldown(60);
+      setError('');
+      alert('2FA Passcode sent to your email.');
+    } catch (err: any) {
+      if (err.response?.status === 429) {
+        setError('Please wait 1 minute before requesting another code.');
+      } else {
+        setError('Failed to send 2FA code.');
+      }
     }
   };
 
@@ -86,7 +109,12 @@ export default function DownloaderView() {
             <input id="downloadSecret" className="form-control" type="password" required value={secret} onChange={e => setSecret(e.target.value)} />
           </div>
           {error && <div className="alert alert-danger">{error}</div>}
-          <button type="submit" className="btn btn-primary">{t('validate_passcode', lang)}</button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" className="btn btn-primary">{t('validate_passcode', lang)}</button>
+            <button type="button" className="btn btn-default" onClick={handleSend2fa} disabled={cooldown > 0}>
+              {cooldown > 0 ? `Wait ${cooldown}s` : 'Send Passcode'}
+            </button>
+          </div>
         </form>
       </div>
     );

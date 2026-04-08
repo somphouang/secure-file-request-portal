@@ -33,6 +33,10 @@ export interface UploadRequestRecord {
     sharedForDownload?: boolean;
     downloadCompletedAt?: Date;
     requestorGroups?: string;
+    last2faSentAt?: Date;
+    identifierName?: string;
+    identifierValue?: string;
+    jsonMetadata?: string;
 }
 
 export interface DownloadShareRecord {
@@ -46,6 +50,10 @@ export interface DownloadShareRecord {
     requestNumber: string;
     caseNumber?: string;
     downloadCompletedAt?: Date;
+    last2faSentAt?: Date;
+    identifierName?: string;
+    identifierValue?: string;
+    jsonMetadata?: string;
 }
 
 export type UploadRequest = TableEntity<UploadRequestRecord>;
@@ -85,7 +93,10 @@ export async function createUploadRequest(
     expirationDays: number = 7,
     allowMultiple: boolean = false,
     manualCaseNumber?: string,
-    requestorGroups?: string
+    requestorGroups?: string,
+    identifierName?: string,
+    identifierValue?: string,
+    jsonMetadata?: string
 ): Promise<Partial<UploadRequest>> {
     const token = uuidv4();
     const requestNumber = generateRequestNumber();
@@ -100,7 +111,10 @@ export async function createUploadRequest(
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
         allowMultiple,
         requestNumber,
-        caseNumber: manualCaseNumber || ''
+        caseNumber: manualCaseNumber || '',
+        identifierName: identifierName || '',
+        identifierValue: identifierValue || '',
+        jsonMetadata: jsonMetadata || ''
     };
     if (requestorGroups) {
         entity.requestorGroups = requestorGroups;
@@ -175,7 +189,10 @@ export async function createDownloadShare(
     originalFilename: string,
     expirationDays: number = 7,
     manualCaseNumber?: string,
-    blobUri?: string
+    blobUri?: string,
+    identifierName?: string,
+    identifierValue?: string,
+    jsonMetadata?: string
 ): Promise<Partial<DownloadShare>> {
     const requestNumber = generateRequestNumber();
     const entity: any = {
@@ -186,7 +203,10 @@ export async function createDownloadShare(
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
         requestNumber,
-        caseNumber: manualCaseNumber || ''
+        caseNumber: manualCaseNumber || '',
+        identifierName: identifierName || '',
+        identifierValue: identifierValue || '',
+        jsonMetadata: jsonMetadata || ''
     };
     if (blobUri) {
         entity.blobUri = blobUri;

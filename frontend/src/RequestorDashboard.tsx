@@ -22,6 +22,9 @@ interface UploadRequest {
   downloaderEmail?: string;
   sharedForDownload?: boolean;
   downloadCompletedAt?: string;
+  identifierName?: string;
+  identifierValue?: string;
+  jsonMetadata?: string;
 }
 
 interface FileShare {
@@ -34,6 +37,9 @@ interface FileShare {
   downloaderEmail?: string;
   requestNumber: string;
   caseNumber: string;
+  identifierName?: string;
+  identifierValue?: string;
+  jsonMetadata?: string;
 }
 type SortDirection = 'asc' | 'desc';
 interface SortConfig<T> { key: keyof T | ''; direction: SortDirection }
@@ -66,14 +72,20 @@ export default function RequestorDashboard() {
     requestedFileTypes: 'pdf,xlsx',
     expirationDays: '7',
     allowMultiple: false,
-    caseNumber: ''
+    caseNumber: '',
+    identifierName: '',
+    identifierValue: '',
+    jsonMetadata: ''
   });
   const [shareFile, setShareFile] = useState<File | null>(null);
   const [uploadingShare, setUploadingShare] = useState(false);
   const [newShare, setNewShare] = useState({ 
     downloaderEmail: '', 
     expirationDays: '7',
-    caseNumber: ''
+    caseNumber: '',
+    identifierName: '',
+    identifierValue: '',
+    jsonMetadata: ''
   });
   const [loading, setLoading] = useState(false);
   
@@ -159,7 +171,7 @@ export default function RequestorDashboard() {
       const config = await getAxiosConfig();
       await axios.post(`${API_BASE}/requests`, newRequest, config);
       setShowConfig(false);
-      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', allowMultiple: false, caseNumber: '' });
+      setNewRequest({ uploaderEmail: '', requestedFileTypes: 'pdf,xlsx', expirationDays: '7', allowMultiple: false, caseNumber: '', identifierName: '', identifierValue: '', jsonMetadata: '' });
       fetchRequests();
     } catch (error) {
       console.error('Failed to create request', error);
@@ -261,7 +273,10 @@ export default function RequestorDashboard() {
         { 
           filename: shareFile.name,
           expirationDays: parseInt(newShare.expirationDays),
-          caseNumber: newShare.caseNumber
+          caseNumber: newShare.caseNumber,
+          identifierName: newShare.identifierName,
+          identifierValue: newShare.identifierValue,
+          jsonMetadata: newShare.jsonMetadata
         },
         config
       );
@@ -291,7 +306,7 @@ export default function RequestorDashboard() {
 
       alert(t('file_uploaded_invitation_sent', lang));
       setShareFile(null);
-      setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '' });
+      setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '', identifierName: '', identifierValue: '', jsonMetadata: '' });
       setShowShareForm(false);
       fetchShares();
     } catch (error) {
@@ -391,6 +406,20 @@ export default function RequestorDashboard() {
                 placeholder={t('case_number_placeholder', lang)}
               />
             </div>
+            <div className="form-group" style={{ display: 'flex', gap: '15px' }}>
+              <div style={{ flex: 1 }}>
+                <label htmlFor="identifierName">{t('identifier_name', lang) || 'Identifier Name'}</label>
+                <input type="text" className="form-control" id="identifierName" value={newRequest.identifierName} onChange={e => setNewRequest({...newRequest, identifierName: e.target.value})} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label htmlFor="identifierValue">{t('identifier_value', lang) || 'Identifier Value'}</label>
+                <input type="text" className="form-control" id="identifierValue" value={newRequest.identifierValue} onChange={e => setNewRequest({...newRequest, identifierValue: e.target.value})} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="jsonMetadata">{t('json_metadata', lang) || 'JSON Metadata'}</label>
+              <textarea className="form-control" id="jsonMetadata" value={newRequest.jsonMetadata} onChange={e => setNewRequest({...newRequest, jsonMetadata: e.target.value})} rows={3} placeholder='{"key": "value"}'></textarea>
+            </div>
             <div className="form-group" style={{ marginBottom: '15px' }}>
               <label htmlFor="allowMultiple" style={{ fontWeight: 'normal' }}>
                 <input 
@@ -487,6 +516,20 @@ export default function RequestorDashboard() {
                 placeholder={t('case_number_placeholder', lang)}
               />
             </div>
+            <div className="form-group" style={{ display: 'flex', gap: '15px' }}>
+              <div style={{ flex: 1 }}>
+                <label htmlFor="shareIdentifierName">{t('identifier_name', lang) || 'Identifier Name'}</label>
+                <input type="text" className="form-control" id="shareIdentifierName" value={newShare.identifierName} onChange={e => setNewShare({...newShare, identifierName: e.target.value})} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label htmlFor="shareIdentifierValue">{t('identifier_value', lang) || 'Identifier Value'}</label>
+                <input type="text" className="form-control" id="shareIdentifierValue" value={newShare.identifierValue} onChange={e => setNewShare({...newShare, identifierValue: e.target.value})} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="shareJsonMetadata">{t('json_metadata', lang) || 'JSON Metadata'}</label>
+              <textarea className="form-control" id="shareJsonMetadata" value={newShare.jsonMetadata} onChange={e => setNewShare({...newShare, jsonMetadata: e.target.value})} rows={2} placeholder='{"key": "value"}'></textarea>
+            </div>
             <div style={{ marginTop: '1.5em' }}>
               <button className="btn btn-primary" type="submit" disabled={!shareFile || !newShare.downloaderEmail || uploadingShare}>
                 {uploadingShare ? t('uploading_and_sending', lang) : t('upload_and_send_invitation', lang)}
@@ -494,7 +537,7 @@ export default function RequestorDashboard() {
               <button type="button" className="btn btn-default" style={{ marginLeft: '10px' }} onClick={() => { 
                 setShowShareForm(false); 
                 setShareFile(null); 
-                setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '' });
+                setNewShare({ downloaderEmail: '', expirationDays: '7', caseNumber: '', identifierName: '', identifierValue: '', jsonMetadata: '' });
               }}>
                 {t('cancel', lang)}
               </button>
@@ -518,6 +561,8 @@ export default function RequestorDashboard() {
             <tr>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('requestNumber')}>{t('table_request_number', lang)}{getSortIndicator(requestSort, 'requestNumber')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('caseNumber')}>{t('table_case_number', lang)}{getSortIndicator(requestSort, 'caseNumber')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('identifierName')}>{t('identifier_name', lang) || 'Identifier Name'}{getSortIndicator(requestSort, 'identifierName')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('identifierValue')}>{t('identifier_value', lang) || 'Identifier Value'}{getSortIndicator(requestSort, 'identifierValue')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('uploaderEmail')}>{t('table_uploader', lang)}{getSortIndicator(requestSort, 'uploaderEmail')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('requestedFileTypes')}>{t('table_type', lang)}{getSortIndicator(requestSort, 'requestedFileTypes')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleRequestSort('status')}>{t('table_status', lang)}{getSortIndicator(requestSort, 'status')}</th>
@@ -530,6 +575,8 @@ export default function RequestorDashboard() {
               <tr key={req.rowKey}>
                 <td><strong>{req.requestNumber}</strong></td>
                 <td><strong>{req.caseNumber || '--'}</strong></td>
+                <td>{req.identifierName || '--'}</td>
+                <td>{req.identifierValue || '--'}</td>
                 <td>{req.uploaderEmail}</td>
                 <td>{req.requestedFileTypes.toUpperCase()}</td>
                 <td>{getStatusBadge(req.status)}</td>
@@ -594,6 +641,8 @@ export default function RequestorDashboard() {
             <tr>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('requestNumber')}>{t('table_request_number', lang)}{getSortIndicator(shareSort, 'requestNumber')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('caseNumber')}>{t('table_case_number', lang)}{getSortIndicator(shareSort, 'caseNumber')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('identifierName')}>{t('identifier_name', lang) || 'Identifier Name'}{getSortIndicator(shareSort, 'identifierName')}</th>
+              <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('identifierValue')}>{t('identifier_value', lang) || 'Identifier Value'}{getSortIndicator(shareSort, 'identifierValue')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('originalFilename')}>{t('table_filename', lang)}{getSortIndicator(shareSort, 'originalFilename')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('status')}>{t('table_status', lang)}{getSortIndicator(shareSort, 'status')}</th>
               <th scope="col" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => handleShareSort('downloaderEmail')}>{t('table_downloader', lang)}{getSortIndicator(shareSort, 'downloaderEmail')}</th>
@@ -606,6 +655,8 @@ export default function RequestorDashboard() {
               <tr key={share.rowKey}>
                 <td><strong>{share.requestNumber}</strong></td>
                 <td><strong>{share.caseNumber || '--'}</strong></td>
+                <td>{share.identifierName || '--'}</td>
+                <td>{share.identifierValue || '--'}</td>
                 <td>{share.originalFilename}</td>
                 <td>{getStatusBadge(share.status)}</td>
                 <td>{share.downloaderEmail || '--'}</td>

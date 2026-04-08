@@ -1,0 +1,390 @@
+openapi: 3.0.0
+info:
+  title: Secure File Request Portal API
+  version: 1.0.0
+  description: >
+    API documentation for the Secure File Request Portal. 
+    This API allows you to programmatically create secure upload/download requests, generate SAS tokens for Azure blob storage direct uploads, and track submissions independent of the React frontend.
+servers:
+  - url: /api
+    description: Internal Requestor API
+  - url: /api/public
+    description: Public External API
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Entra ID / MSAL Barer Token required for protected endpoints.
+
+paths:
+  /requests:
+    post:
+      summary: Create a new Upload Request
+      description: Creates a secure upload request and optionally emails the external uploader.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [uploaderEmail, requestedFileTypes, expirationDays, allowMultiple]
+              properties:
+                uploaderEmail: { type: string }
+                requestedFileTypes: { type: string, example: "pdf,xlsx" }
+                expirationDays: { type: integer, example: 7 }
+                allowMultiple: { type: boolean, example: true }
+                caseNumber: { type: string }
+                identifierName: { type: string }
+                identifierValue: { type: string }
+                jsonMetadata: { type: string }
+      responses:
+        '201':
+          description: Upload request created.
+    get:
+      summary: List Requestor Uploads
+      description: Retrieves all upload requests created by the authenticated user's email or groups.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Successful retrieval
+
+  /requests/{token}/download:
+    get:
+      summary: Get Upload Download SAS (Protected)
+      description: Generates a short-lived download SAS token for internal requestors to view the uploaded file.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+        - in: query
+          name: filename
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Returns SAS URL
+
+  /requests/{token}/invite-downloader:
+    post:
+      summary: Invite downlader to specific upload request
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                downloaderEmail: { type: string }
+                blobName: { type: string }
+                expirationDays: { type: integer }
+      responses:
+        '200':
+          description: Downloader invited successfully
+
+  /shares/upload:
+    post:
+      summary: Initialize a File Share Upload
+      description: Use this to upload a file directly for external users to download.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename: { type: string }
+                expirationDays: { type: integer }
+                caseNumber: { type: string }
+                identifierName: { type: string }
+                identifierValue: { type: string }
+                jsonMetadata: { type: string }
+      responses:
+        '200':
+          description: Returns an Azure Blob SAS URL for direct upload of the file you want to share.
+
+  /shares/confirm:
+    post:
+      summary: Confirm Share Upload
+      description: Reconcile after your direct Azure PUT upload completes for a File Share.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: { type: string }
+                blobName: { type: string }
+                filename: { type: string }
+      responses:
+        '200':
+          description: File uploaded successfully
+
+  /shares:
+    get:
+      summary: List Requestor File Shares
+      description: Retrieve all active outbound file shares you have created.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Returns list of shares.
+          
+  /shares/{token}/invite:
+    post:
+      summary: Invite Downloader to Share
+      description: Emails access instructions to an external downloader.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                downloaderEmail: { type: string }
+                expirationDays: { type: integer }
+      responses:
+        '200':
+          description: Invitation sent
+
+  /public/requests/{token}:
+    get:
+      summary: Get Request Info
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Request status details
+
+  /public/requests/{token}/send-uploader-2fa:
+    post:
+      summary: Trigger Uploader 2FA Code
+      description: Generates a 6-digit passcode and emails it to the uploader. Has a strict 1-minute cooldown.
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "2FA code sent via email." }
+        '429': { description: "Please wait 1 minute before requesting another code." }
+
+  /public/requests/{token}/send-downloader-2fa:
+    post:
+      summary: Trigger Downloader 2FA Code
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "2FA code sent." }
+
+  /public/requests/{token}/validate-secret:
+    post:
+      summary: Validate Uploader Passcode
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret: { type: string }
+      responses:
+        '200': { description: "Secret is valid" }
+        '401': { description: "Invalid secret" }
+
+  /public/requests/{token}/validate-download:
+    post:
+      summary: Validate Downloader Passcode
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret: { type: string }
+      responses:
+        '200': { description: "Secret is valid" }
+
+  /public/requests/{token}/sas:
+    post:
+      summary: Generate an Upload Storage SAS
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename: { type: string }
+                secret: { type: string }
+      responses:
+        '200': { description: "Returns SAS URL and identifiers" }
+
+  /public/requests/{token}/confirm:
+    post:
+      summary: Confirm Upload Completion
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                blobName: { type: string }
+      responses:
+        '200': { description: "Upload confirmed" }
+
+  /public/requests/{token}/download:
+    get:
+      summary: Download requested file
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+        - in: query
+          name: secret
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Returns download SAS" }
+
+  /public/requests/{token}/mark-download-complete:
+    post:
+      summary: Mark Download as Complete
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret: { type: string }
+      responses:
+        '200': { description: "Marked complete" }
+
+  /public/shares/{token}:
+    get:
+      summary: Get Share Info
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "Share info returned" }
+
+  /public/shares/{token}/send-download-2fa:
+    post:
+      summary: Trigger File Share 2FA
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "2FA sent" }
+
+  /public/shares/{token}/validate-download:
+    post:
+      summary: Validate Share Download Passcode
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret: { type: string }
+      responses:
+        '200': { description: "Authorized" }
+
+  /public/shares/{token}/download:
+    get:
+      summary: Generate Share Download SAS
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+        - in: query
+          name: secret
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: "URL returned" }
+
+  /public/shares/{token}/mark-download-complete:
+    post:
+      summary: Mark Share Download Complete
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                secret: { type: string }
+      responses:
+        '200': { description: "Marked complete" }
