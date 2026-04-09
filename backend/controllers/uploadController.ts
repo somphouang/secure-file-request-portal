@@ -11,7 +11,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 export const createRequest = async (req: Request, res: Response) => {
     try {
-        const { uploaderEmail, requestedFileTypes, expirationDays, allowMultiple, caseNumber, identifierName, identifierValue, jsonMetadata } = req.body;
+        const { uploaderEmail, requestedFileTypes, expirationDays, allowMultiple, maxFileSize, caseNumber, identifierName, identifierValue, jsonMetadata } = req.body;
         let requestorEmail = req.user?.preferred_username || req.body.requestorEmail || 'admin@example.com';
         
         // Remove characters forbidden in Azure Table keys: / \ # ? 
@@ -33,6 +33,7 @@ export const createRequest = async (req: Request, res: Response) => {
             secretHash,
             parseInt(expirationDays as string, 10) || 7,
             allowMultiple === true,
+            maxFileSize !== undefined ? parseInt(maxFileSize) : 50,
             caseNumber,
             requestorGroups,
             identifierName,
@@ -81,6 +82,7 @@ export const getRequestInfo = async (req: Request, res: Response) => {
             requiresSecret: !!request.secretHash,
             blobUri: request.blobUri || null,
             allowMultiple: request.allowMultiple || false,
+            maxFileSize: request.maxFileSize || 50,
             isClosed: request.isClosed || false,
             requestNumber: request.requestNumber,
             caseNumber: request.caseNumber
@@ -320,9 +322,11 @@ export const confirmShareUpload = async (req: Request, res: Response) => {
         // Update share with confirmed blob
         await azureTableService.updateDownloadShare(requestorEmail, token, {
             blobUri: blobName,
-            status: 'Ready',
+            status: 'Uploaded',
             originalFilename: filename
         });
+
+        assemblylineService.scanShareFile(requestorEmail, token, blobName);
 
         res.json({ message: 'File uploaded successfully', token });
     } catch (error: any) {
@@ -359,13 +363,15 @@ export const inviteDownloaderToShare = async (req: Request, res: Response) => {
         const share = await azureTableService.getDownloadShare(requestorEmail, token);
         if (!share) return res.status(404).json({ error: 'Share not found' });
         if (!share.blobUri) return res.status(400).json({ error: 'File not yet uploaded' });
+        if (share.status !== 'Clean') return res.status(400).json({ error: 'File must be clean before setting a downloader invite' });
 
         const downloadPasscode = generatePasscode();
         const downloadPasscodeHash = await bcrypt.hash(downloadPasscode, 10);
 
         await azureTableService.updateDownloadShare(requestorEmail, token, {
             downloaderEmail,
-            downloadSecretHash: downloadPasscodeHash
+            downloadSecretHash: downloadPasscodeHash,
+            status: 'Awaiting Download'
         });
 
         const downloadLink = `${FRONTEND_URL}/download-share/${token}`;

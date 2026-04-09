@@ -56,6 +56,7 @@
 
         <div v-if="!requestInfo?.blobUri || requestInfo?.allowMultiple">
           <p><strong>{{ t('allowed_file_types') }}</strong> {{ requestInfo?.requestedFileTypes }}</p>
+          <p><strong>Max File Size:</strong> {{ requestInfo?.maxFileSize || 50 }} MB</p>
           
           <div 
             class="dropzone"
@@ -208,6 +209,13 @@ const checkAndSetFile = (selectedFile: File) => {
   if (allowedExtensions.length > 0 && fileExt && !allowedExtensions.includes(fileExt)) {
     file.value = null;
     fileError.value = `Invalid file type. Allowed: ${requestInfo.value?.requestedFileTypes}`;
+    return;
+  }
+
+  const maxSizeInBytes = (requestInfo.value?.maxFileSize || 50) * 1024 * 1024;
+  if (selectedFile.size > maxSizeInBytes) {
+    file.value = null;
+    fileError.value = `File size exceeds the maximum allowed limit of ${requestInfo.value?.maxFileSize || 50} MB.`;
     return;
   }
 
