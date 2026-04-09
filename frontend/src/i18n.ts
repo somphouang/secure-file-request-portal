@@ -1,36 +1,27 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { reactive, ref, watch } from 'vue';
 
 type Language = 'en' | 'fr';
 
-interface LanguageContextType {
-  lang: Language;
-  setLang: (lang: Language) => void;
-}
+const lang = ref<Language>('en');
 
-export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
-
-export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [lang, setLang] = useState<Language>('en');
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  return (
-    <LanguageContext.Provider value={{ lang, setLang }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-};
+watch(lang, (newLang) => {
+  document.documentElement.lang = newLang;
+}, { immediate: true });
 
 export const useLanguage = () => {
-  const context = useContext(LanguageContext);
-  if (!context) throw new Error("useLanguage must be used within a LanguageProvider");
-  return context;
+  const setLang = (newLang: Language) => {
+    lang.value = newLang;
+  };
+
+  return {
+    lang,
+    setLang
+  };
 };
 
-export const t = (key: string, lang: Language): string => {
-  return (dict[lang] as any)[key] || key;
+export const t = (key: string, l?: Language): string => {
+  const currentLang = l || lang.value;
+  return (dict[currentLang] as any)[key] || key;
 };
 
 const dict = {
