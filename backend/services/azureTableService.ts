@@ -24,6 +24,7 @@ export interface UploadRequestRecord {
     blobUri?: string;
     fileHash?: string;
     allowMultiple?: boolean;
+    maxFileSize?: number;
     fileStatuses?: string;
     isClosed?: boolean;
     downloaderEmail?: string;
@@ -92,6 +93,7 @@ export async function createUploadRequest(
     secretHash?: string, 
     expirationDays: number = 7,
     allowMultiple: boolean = false,
+    maxFileSize: number = 50,
     manualCaseNumber?: string,
     requestorGroups?: string,
     identifierName?: string,
@@ -110,6 +112,7 @@ export async function createUploadRequest(
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + (expirationDays * 24 * 60 * 60 * 1000)),
         allowMultiple,
+        maxFileSize,
         requestNumber,
         caseNumber: manualCaseNumber || '',
         identifierName: identifierName || '',

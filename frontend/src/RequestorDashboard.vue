@@ -57,6 +57,10 @@
              <option value="30">30 {{ t('days') }}</option>
            </select>
         </div>
+        <div class="form-group">
+           <label for="maxFileSize">Max File Size (MB) <span class="required">{{ t('required') }}</span></label>
+           <input type="number" class="form-control" id="maxFileSize" required v-model="newRequest.maxFileSize" min="1" />
+        </div>
         <div style="margin-top: 1.5em;">
           <button class="btn btn-primary" type="submit" :disabled="loading">
             {{ loading ? '...' : t('submit') }}
@@ -149,10 +153,10 @@
           <input type="file" class="form-control" id="shareFile" @change="handleShareFile" required />
           <p v-if="shareFile" style="margin-top: 0.5em; font-size: 0.9em; color: #666;">{{ t('selected') }}: {{ shareFile.name }}</p>
         </div>
-        <div class="form-group">
+        <div class="form-group" style="display: none;">
           <label for="downloaderEmail">{{ t('downloader_email') }} <span class="required">*</span></label>
           <span class="hint-text">{{ t('downloader_email_hint') }}</span>
-          <input type="email" class="form-control" id="downloaderEmail" required v-model="newShare.downloaderEmail" />
+          <input type="email" class="form-control" id="downloaderEmail" v-model="newShare.downloaderEmail" />
         </div>
         <div class="form-group">
           <label for="shareExpirationDays">{{ t('link_expiration') }} <span class="required">*</span></label>
@@ -164,8 +168,8 @@
           </select>
         </div>
         <div style="margin-top: 1.5em;">
-          <button class="btn btn-primary" type="submit" :disabled="!shareFile || !newShare.downloaderEmail || uploadingShare">
-            {{ uploadingShare ? t('uploading_and_sending') : t('upload_and_send_invitation') }}
+          <button class="btn btn-primary" type="submit" :disabled="!shareFile || uploadingShare">
+            {{ uploadingShare ? t('uploading_and_sending') : 'Upload File' }}
           </button>
           <button type="button" class="btn btn-default" style="margin-left: 10px;" @click="showShareForm = false; shareFile = null">
             {{ t('cancel') }}
@@ -207,8 +211,11 @@
           <td>{{ share.downloaderEmail || '--' }}</td>
           <td>{{ new Date(share.expiresAt).toLocaleDateString() }}</td>
           <td>
-            <button v-if="!share.downloaderEmail && share.blobUri" class="btn btn-small btn-info" @click="inviteDownloader(share.rowKey)">
+            <button v-if="!share.downloaderEmail && share.blobUri && share.status === 'Clean'" class="btn btn-small btn-info" @click="inviteShareDownloader(share.rowKey)">
               {{ t('invite_downloader') }}
+            </button>
+            <button v-else-if="!share.downloaderEmail && share.blobUri && share.status !== 'Clean'" class="btn btn-small btn-secondary" disabled>
+              {{ t('invite_downloader') }} (Wait for Clean status)
             </button>
             <span v-else-if="share.downloaderEmail" style="color: #666;">{{ t('invited') }}</span>
             <span v-else style="color: #999;">{{ t('pending_upload') }}</span>
@@ -242,6 +249,7 @@ const newRequest = ref({
   requestedFileTypes: 'pdf,xlsx',
   expirationDays: '7',
   allowMultiple: false,
+  maxFileSize: 50,
   caseNumber: '',
   identifierName: '',
   identifierValue: '',
@@ -405,6 +413,33 @@ const inviteDownloader = async (token: string, blobName?: string) => {
   }
 };
 
+const inviteShareDownloader = async (token: string) => {
+  const downloaderEmail = window.prompt(t('downloader_email_prompt'));
+  if (!downloaderEmail) return;
+
+  const expirationInput = window.prompt(t('share_expiration_days_prompt'), '7');
+  if (!expirationInput) return;
+
+  const expirationDays = parseInt(expirationInput, 10);
+  if (isNaN(expirationDays) || expirationDays < 1) {
+    alert(t('invalid_expiration_days'));
+    return;
+  }
+
+  try {
+    const config = await getAxiosConfig();
+    await axios.post(`${API_BASE}/shares/${token}/invite`, { 
+      downloaderEmail,
+      expirationDays
+    }, config);
+    alert(t('invitation_sent'));
+    fetchShares();
+  } catch (error) {
+    console.error('Failed to send share downloader invite', error);
+    alert(t('failed_send_invite'));
+  }
+};
+
 const shareToSharePoint = async (token: string, blobName?: string) => {
   try {
     const config = await getAxiosConfig();
@@ -441,7 +476,7 @@ const handleShareFile = (e: Event) => {
 };
 
 const uploadAndShareFile = async () => {
-  if (!shareFile.value || !newShare.value.downloaderEmail) return;
+  if (!shareFile.value) return;
   uploadingShare.value = true;
   try {
     const config = await getAxiosConfig();
@@ -467,9 +502,8 @@ const uploadAndShareFile = async () => {
     });
 
     await axios.post(`${API_BASE}/shares/confirm`, { token, blobName, filename: shareFile.value.name }, config);
-    await axios.post(`${API_BASE}/shares/${token}/invite`, { downloaderEmail: newShare.value.downloaderEmail }, config);
 
-    alert(t('file_uploaded_invitation_sent'));
+    alert('File uploaded successfully. It is now scanning. Once it is Clean, you can invite the downloader.');
     shareFile.value = null;
     newShare.value = { downloaderEmail: '', expirationDays: '7', caseNumber: '', identifierName: '', identifierValue: '', jsonMetadata: '' };
     showShareForm.value = false;
