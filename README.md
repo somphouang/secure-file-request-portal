@@ -4,7 +4,7 @@ The Secure File Portal Assistant is a full-stack Node.js application that enable
 
 ## Architecture
 
-The system utilizes an Express backend serving a React SPA frontend. Cloud infrastructure leverages Azure Storage services for blob uploads and NoSQL tracking, with GCNotify for secure email delivery and Assemblyline for malware scanning.
+The system utilizes an Express backend and serving a Vue 3 SPA frontend (built with Vite and TypeScript). Cloud infrastructure leverages Azure Storage services for blob uploads and NoSQL tracking, with GCNotify for secure email delivery and Assemblyline for malware scanning.
 
 ```mermaid
 graph TD
@@ -13,7 +13,7 @@ graph TD
     Uploader[External Uploader]
     
     %% Frontend
-    subgraph Frontend [React SPA Vite]
+    subgraph Frontend [Vue 3 SPA Vite]
         ReqUI[Requestor Dashboard]
         UpUI[Secure Upload Portal]
     end
@@ -265,6 +265,23 @@ The backend auth middleware validates the frontend Entra ID JWT by checking the 
 | `VITE_MSAL_TENANT_ID` | Entra ID Tenant ID. | Your Entra ID tenant ID. |
 | `VITE_MSAL_REDIRECT_URI` | Redirect URI after successful frontend login. | e.g., `http://localhost:5173/` |
 
+### Frontend Runtime Environment Injection
+
+The Vue 3 frontend utilizes `@import-meta-env/unplugin` to allow loading frontend environment variables robustly at runtime from the statically built `dist/` folder (enabling a "Build Once, Run Anywhere" strategy). This allows Docker containers or static servers to hot-swap API routes or tenant IDs on standard pre-compiled bundles without triggering a new `vite build`.
+
+To run environment injections dynamically on your built static dist folder before standing up the static web serve:
+
+```bash
+# Build the TypeScript / Vue 3 Vite distribution
+npm run build
+
+# Inject runtime variables into the compiled static index boundary
+npx import-meta-env -x .env -p dist/index.html
+
+# Serve the pre-compiled, environment-aware distribution
+npm run serve
+```
+
 ## Setup Instructions
 Please refer to the enclosed walkthrough artifacts or run locally via:
 
@@ -387,13 +404,13 @@ Authenticated endpoint to list all user's requests with current statuses.
 
 # Secure File Portal Verification Walkthrough
 
-The Secure File Portal Assistant application is now completely developed. It includes the React frontend, the Express backend, and mock services for Azure Storage, Azure Data Tables, GCNotify, and Assemblyline to allow for complete local verification without requiring cloud keys immediately.
+The Secure File Portal Assistant application is now completely developed. It includes the Vue 3 frontend, the Express backend, and mock services for Azure Storage, Azure Data Tables, GCNotify, and Assemblyline to allow for complete local verification without requiring cloud keys immediately.
 
 ## Application Components Completed
 
-- **Frontend (`/frontend`)**: React application using Vite, stylized with modern glassmorphism Vanilla CSS.
-  - `RequestorDashboard.jsx`: Displays your active requests, their statuses, and allows creating a new upload link.
-  - `UploaderView.jsx`: The secure upload portal for external users. Generates short-lived Azure Blob SAS tokens in the background to handle direct and masked file uploads.
+- **Frontend (`/frontend`)**: Vue 3 application built with Vite and TypeScript, stylized with modern glassmorphism Vanilla CSS.
+  - `RequestorDashboard.vue`: Displays your active requests, their statuses, and allows creating a new upload link.
+  - `UploaderView.vue`: The secure upload portal for external users. Generates short-lived Azure Blob SAS tokens in the background to handle direct and masked file uploads.
 - **Backend (`/backend`)**: Express API server.
   - `server.js`: Web server and mocked authentication middleware.
   - `azureBlobService.js`: Scoped SAS token generator.
@@ -801,7 +818,7 @@ If you are ready for production and want the ability to send requests to *any* u
 
 ### API Routes Reference
 
-#### Protected Endpoints (Requires Microsoft Entra ID Barer Token):
+#### Protected Endpoints (Requires Microsoft Entra ID Bearer Token):
 * `POST /api/requests` - Create a new upload request for an external user.
 * `GET /api/requests` - Retrieve all upload requests for your team.
 * `GET /api/requests/:token/download` - Get Azure SAS to download an uploaded file.
