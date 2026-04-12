@@ -55,7 +55,7 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useLanguage, t as tRoot } from './i18n';
 
-const API_BASE = 'http://localhost:3001/api/public';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/public` : 'http://localhost:3001/api/public';
 const route = useRoute();
 const { lang } = useLanguage();
 

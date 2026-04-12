@@ -233,7 +233,7 @@ import { Plus, Download, RefreshCw, Upload } from 'lucide-vue-next';
 import { useLanguage, t as tRoot } from './i18n';
 import { PublicClientApplication } from '@azure/msal-browser';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 const msal = inject<PublicClientApplication>('msal')!;
 const { lang } = useLanguage();
 
@@ -307,18 +307,19 @@ const sortedShares = computed(() => {
 });
 
 const getAxiosConfig = async () => {
+  const headers: Record<string, string> = {};
   if (activeAccount.value) {
     try {
       const response = await msal.acquireTokenSilent({
         scopes: ["User.Read"],
         account: activeAccount.value
       });
-      return { headers: { Authorization: `Bearer ${response.accessToken}` } };
+      headers['Authorization'] = `Bearer ${response.accessToken}`;
     } catch (e) {
-      return { headers: { 'x-user-email': activeAccount.value.username } };
+      headers['x-user-email'] = activeAccount.value.username;
     }
   }
-  return {};
+  return { headers };
 };
 
 const fetchRequests = async () => {

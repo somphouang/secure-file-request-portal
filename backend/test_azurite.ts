@@ -1,10 +1,11 @@
-import { TableClient } from '@azure/data-tables';
-import 'dotenv/config';
+const { TableClient } = require('@azure/data-tables');
+require('dotenv').config();
 
 const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || 'UseDevelopmentStorage=true';
-const tableName = 'TestTable';
+const tableName = 'TestTableJS';
 
 async function test() {
+    console.log('Using connection string:', connectionString);
     const client = TableClient.fromConnectionString(connectionString, tableName, {
         allowInsecureConnection: true
     });
@@ -20,20 +21,20 @@ async function test() {
         };
 
         await client.createEntity(entity);
-        console.log('Entity created successfully');
+        console.log('Simple entity created successfully');
 
         const complexEntity = {
             partitionKey: 'complexPartition',
             rowKey: 'complexRow',
             email: 'test@example.com',
-            date: new Date().toISOString(),
+            date: new Date(),
             num: 123
         };
 
         await client.createEntity(complexEntity);
         console.log('Complex entity created successfully');
 
-    } catch (err: any) {
+    } catch (err) {
         console.error('Test failed:', JSON.stringify(err, null, 2));
     }
 }

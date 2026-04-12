@@ -1,5 +1,5 @@
-const axios = require('axios');
-const crypto = require('crypto');
+import axios from 'axios';
+import * as crypto from 'crypto';
 
 const account = 'devstoreaccount1';
 const key = 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==';

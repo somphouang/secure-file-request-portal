@@ -253,7 +253,8 @@ The application requires environment variables for both the backend and frontend
 | `MAILER_FROM` | Sender email address for the notification emails. | e.g., `noreply@your-domain.com` |
 | `MAILER_USER` | SMTP authentication user username. | Your SMTP username. |
 | `MAILER_PASSWD` | SMTP authentication user password. | Your SMTP password. |
-
+| `API_BASE_URL` | Base API URL used for e2e tests and backend fallback. | `http://localhost:3001` (default) |
+| `AZURITE_URL` | Azurite local emulation URL. | `http://127.0.0.1:10000` (default) |
 The backend auth middleware validates the frontend Entra ID JWT by checking the tenant (`tid`), issuer (`iss`), client/app ID (`appid` or `azp`), and audience (`aud`) claims. `MSAL_EXPECTED_AUD` can be used to override the default audience validation value.
 
 ### Frontend (`frontend/.env`)

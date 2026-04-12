@@ -9,18 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@azure/msal-browser": "^3.28.0",
-    "axios": "^1.7.9",
-    "lucide-vue-next": "^0.475.0",
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "@azure/msal-browser": "5.6.3",
+    "axios": "npm:redaxios@0.5.1",
+    "lucide-vue-next": "1.0.0",
+    "vue": "3.5.32",
+    "vue-router": "5.0.4"
   },
   "devDependencies": {
-    "@import-meta-env/unplugin": "^0.6.3",
-    "@vitejs/plugin-vue": "^5.2.1",
-    "@vue/tsconfig": "^0.7.0",
-    "typescript": "~5.7.2",
-    "vite": "^6.1.0",
-    "vue-tsc": "^2.2.0"
+    "@import-meta-env/unplugin": "0.6.3",
+    "@vitejs/plugin-vue": "6.0.5",
+    "@vue/tsconfig": "0.9.1",
+    "typescript": "6.0.2",
+    "vite": "8.0.8",
+    "vue-tsc": "3.2.6"
   }
 }

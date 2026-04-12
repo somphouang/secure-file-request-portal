@@ -1,4 +1,4 @@
-const { BlobServiceClient, StorageSharedKeyCredential } = require("@azure/storage-blob");
+import { BlobServiceClient, StorageSharedKeyCredential } from '@azure/storage-blob';
 
 const account = 'devstoreaccount1';
 const accountKey = 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==';

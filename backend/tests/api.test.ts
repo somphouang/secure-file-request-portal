@@ -1,9 +1,10 @@
-const request = require('supertest');
-const express = require('express');
+import { describe, it, expect, jest } from '@jest/globals';
+import request from 'supertest';
+import express, { Request, Response, NextFunction } from 'express';
 
 // We have to mock the azure tables to test the controller without a real DB running
-jest.mock('../services/azureTableService', () => {
-    const mockEntities = {};
+jest.mock('../services/azureTableService.js', () => {
+    const mockEntities: Record<string, any> = {};
     return {
         createUploadRequest: jest.fn((reqE, uplE, reqTypes, secH, expD) => {
             const token = 'mock-1234';
@@ -14,21 +15,34 @@ jest.mock('../services/azureTableService', () => {
             mockEntities[token] = entity;
             return Promise.resolve(entity);
         }),
-        getRequestByTokenOnly: jest.fn((token) => Promise.resolve(mockEntities[token])),
+        getRequestByTokenOnly: jest.fn((token: any) => Promise.resolve(mockEntities[token])),
         updateRequestStatus: jest.fn(() => Promise.resolve())
     };
 });
-jest.mock('../services/gcNotifyService', () => ({
+jest.mock('../services/gcNotifyService.js', () => ({
     sendUploadRequestEmail: jest.fn(() => Promise.resolve())
 }));
 
-const uploadController = require('../controllers/uploadController');
+jest.mock('uuid', () => ({ v4: () => 'mocked-uuid-1234' }));
+
+jest.mock('bcryptjs', () => ({
+    hash: jest.fn(() => Promise.resolve('mocked-hash')),
+    compare: jest.fn((secret) => Promise.resolve(secret === 'MySecretPasscode'))
+}));
+
+import * as uploadController from '../controllers/uploadController.js';
+
+// Create test app wrapper
 const app = express();
 app.use(express.json());
-app.post('/api/requests', (req, res, next) => { req.user = { preferred_username: 'test@example.com' }; next(); }, uploadController.createRequest);
+app.post('/api/requests', (req: Request, res: Response, next: NextFunction) => {
+    req.user = { preferred_username: 'test@example.com' };
+    next();
+}, uploadController.createRequest);
+
 app.post('/api/public/requests/:token/validate-secret', uploadController.validateSecret);
 
-describe('Backend Backend API', () => {
+describe('Backend API', () => {
     let currentToken = '';
 
     it('should create an upload request with a secret', async () => {

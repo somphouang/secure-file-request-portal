@@ -1,9 +1,9 @@
-const axios = require('axios');
+import axios from 'axios';
 
 async function checkList() {
     try {
         console.log('Fetching active requests for somp@outlook.com...');
-        const res = await axios.get('http://localhost:3001/api/requests', {
+        const res = await axios.get(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/requests`, {
             headers: { 'x-user-email': 'somp@outlook.com' }
         });
         console.log('Active Requests List:');
