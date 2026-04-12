@@ -1,9 +1,9 @@
-const axios = require('axios');
+import axios from 'axios';
 
 async function testUI() {
     try {
         console.log('Testing create request...');
-        const res = await axios.post('http://localhost:3001/api/requests', {
+        const res = await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/requests`, {
             "uploaderEmail": "test-upload@example.com",
             "requestedFileTypes": "pdf",
             "expirationDays": "7",

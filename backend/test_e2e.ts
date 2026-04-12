@@ -1,11 +1,11 @@
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function testE2E() {
     try {
         console.log('1. Creating request...');
-        const createRes = await axios.post('http://localhost:3001/api/requests', {
+        const createRes = await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/requests`, {
             uploaderEmail: 'test-starter@example.com',
             requestedFileTypes: 'pdf,txt',
             expirationDays: "7",
@@ -16,12 +16,12 @@ async function testE2E() {
         console.log('Token created:', token);
 
         console.log('2. Uploader view validates secret...');
-        await axios.post(`http://localhost:3001/api/public/requests/${token}/validate-secret`, {
+        await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/public/requests/${token}/validate-secret`, {
             secret: 'pass'
         });
         
         console.log('3. Getting SAS link for test.txt...');
-        const sasRes = await axios.post(`http://localhost:3001/api/public/requests/${token}/sas`, {
+        const sasRes = await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/public/requests/${token}/sas`, {
             filename: 'test.txt',
             secret: 'pass'
         });
@@ -41,12 +41,12 @@ async function testE2E() {
         console.log('Blob uploaded successfully');
         
         console.log('5. Confirming upload with backend (Triggers Assemblyline)...');
-        await axios.post(`http://localhost:3001/api/public/requests/${token}/confirm`, {
+        await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/public/requests/${token}/confirm`, {
             blobName: blobName
         });
         
         console.log('6. UI Dashboard: clicking Refresh List...');
-        const listRes = await axios.get('http://localhost:3001/api/requests', {
+        const listRes = await axios.get(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/requests`, {
             headers: { 'x-user-email': 'somp@outlook.com' }
         });
         

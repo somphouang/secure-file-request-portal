@@ -1,9 +1,9 @@
-const axios = require('axios');
+import axios from 'axios';
 
 async function testFlow() {
     try {
         console.log('1. Creating request...');
-        const createRes = await axios.post('http://localhost:3001/api/requests', {
+        const createRes = await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/requests`, {
             uploaderEmail: 'test2@example.com',
             requestedFileTypes: 'pdf',
             expirationDays: 7,
@@ -14,13 +14,13 @@ async function testFlow() {
         console.log('Token:', token);
 
         console.log('2. Validating secret...');
-        await axios.post(`http://localhost:3001/api/public/requests/${token}/validate-secret`, {
+        await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/public/requests/${token}/validate-secret`, {
             secret: 'testpass'
         });
         console.log('Secret valid.');
 
         console.log('3. Getting SAS link...');
-        const sasRes = await axios.post(`http://localhost:3001/api/public/requests/${token}/sas`, {
+        const sasRes = await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/public/requests/${token}/sas`, {
             filename: 'testfile.pdf',
             secret: 'testpass'
         });
@@ -41,7 +41,7 @@ async function testFlow() {
         console.log('Blob uploaded successfully');
         
         console.log('5. Confirming upload with backend...');
-        await axios.post(`http://localhost:3001/api/public/requests/${token}/confirm`, {
+        await axios.post(`${process.env.API_BASE_URL || "http://localhost:3001"}/api/public/requests/${token}/confirm`, {
             blobName: blobName
         });
         console.log('Upload Confirmed! Flow works.');
