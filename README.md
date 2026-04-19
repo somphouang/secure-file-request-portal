@@ -165,6 +165,11 @@ If this error persists, check the backend logs for a Graph API error response an
 - Comprehensive localization improvements for the file upload and download workflows
 - Added stronger validation checks to guarantee robust secure file transfers
 
+### 13. **Security & Offline Deployment Enhancements** (New)
+- **Zero-Vulnerability Baseline**: Both frontend and backend dependencies have been migrated to the latest secured `axios` package (v1.15.1+), completely eliminating critical SSRF vulnerabilities and guaranteeing a clean `npm audit` across all layers.
+- **Robust Frontend Builds**: The Vite compile process is now fully stabilized with default `.env` injections out-of-the-box, ensuring `npm run dev` and `npm run build` execute flawlessly for new developers.
+- **AL4 Offline Air-Gapped Deployment**: Introducing the new `assemblyline4/` directory containing complete automation for disconnected environments. Users can now run `pack-online.sh` on an internet-connected host to bundle all CCCS AL4 containers, and seamlessly deploy them onto strict offline networks (Ubuntu/RHEL) using the automated `deploy-offline.yml` Ansible playbook or native scripts.
+
 ## Request Number Generation Algorithm
 
 The system generates unique request numbers using the following algorithm:
@@ -509,6 +514,8 @@ npm run dev
 
 **Steps to deploy CCCS Assemblyline 4 locally (WSL/Ubuntu):**
 To run the full suite, the official [CCCS Installation Guide](https://cybercentrecanada.github.io/assemblyline4_docs/installation/appliance/docker/) requires utilizing their composed deployment repository to guarantee appropriate service meshing. Run the following on your local Docker engine host (e.g., WSL terminal):
+
+> **Deploying offline?** For strict, air-gapped network deployments without internet access, utilize the scripts and playbook provided inside the `assemblyline4/` directory at the root of this repo. Refer to `assemblyline4/README.md` for explicit offline steps.
 
 1. **Configure Docker to use larger address pools:**
    ```bash
