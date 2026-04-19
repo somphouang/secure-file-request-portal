@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@azure/msal-browser": "5.6.3",
-    "axios": "npm:redaxios@0.5.1",
+    "axios": "^1.15.1",
     "lucide-vue-next": "1.0.0",
     "vue": "3.5.32",
     "vue-router": "5.0.4"

@@ -1,0 +1,38 @@
+---
+- name: Deploy Offline Assemblyline 4
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Ensure sysctl vm.max_map_count is set to 262144
+      ansible.posix.sysctl:
+        name: vm.max_map_count
+        value: '262144'
+        state: present
+        sysctl_set: yes
+
+    - name: Check if al4-offline-bundle.tar.gz exists
+      stat:
+        path: "{{ playbook_dir }}/al4-offline-bundle.tar.gz"
+      register: bundle_file
+
+    - name: Extract al4-offline-bundle.tar.gz
+      unarchive:
+        src: "{{ playbook_dir }}/al4-offline-bundle.tar.gz"
+        dest: "{{ playbook_dir }}"
+        remote_src: yes
+      when: bundle_file.stat.exists
+
+    - name: Load Docker Images from al4-images.tar
+      command: docker load -i {{ playbook_dir }}/al4-images.tar
+      when: bundle_file.stat.exists
+
+    - name: Bring core components online securely (detached)
+      command: docker compose up -d --wait
+      args:
+        chdir: "{{ playbook_dir }}/al4-local"
+
+    - name: Bring up bootstrap instance to seed Kibana and Elasticsearch
+      command: docker compose -f bootstrap-compose.yaml up
+      args:
+        chdir: "{{ playbook_dir }}/al4-local"
