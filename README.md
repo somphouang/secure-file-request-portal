@@ -165,6 +165,12 @@ If this error persists, check the backend logs for a Graph API error response an
 - Comprehensive localization improvements for the file upload and download workflows
 - Added stronger validation checks to guarantee robust secure file transfers
 
+### 13. **Security & Offline Deployment Enhancements** (New)
+- **Zero-Vulnerability Baseline**: Both frontend and backend dependencies have been migrated to the latest secured `axios` package (v1.15.1+), completely eliminating critical SSRF vulnerabilities and guaranteeing a clean `npm audit` across all layers.
+- **Robust Frontend Builds**: The Vite compile process is now fully stabilized with default `.env` injections out-of-the-box, ensuring `npm run dev` and `npm run build` execute flawlessly for new developers.
+- **AL4 Offline Air-Gapped Deployment**: Introducing the new `assemblyline4/` directory containing complete automation for disconnected environments. Users can now run `pack-online.sh` on an internet-connected host to bundle all CCCS AL4 containers, and seamlessly deploy them onto strict offline networks (Ubuntu/RHEL) using the automated `deploy-offline.yml` Ansible playbook or native scripts.
+- **Multi-Cloud Architecture**: The Secure Portal backend is now cloud-agnostic, supporting dual orchestration backends. Administrators can dynamically swap between Azure (Blob Storage + Table Storage + SAS) and AWS (S3 Storage + DynamoDB + Presigned URLs) natively by using the `CLOUD_PROVIDER` toggle in the `.env`.
+
 ## Request Number Generation Algorithm
 
 The system generates unique request numbers using the following algorithm:
@@ -232,12 +238,17 @@ The application requires environment variables for both the backend and frontend
 | --- | --- | --- |
 | `PORT` | The port the Express API runs on. | `3001` (default) |
 | `FRONTEND_URL` | Used for CORS and generating links back to the UI. | `http://localhost:5173` |
+| `CLOUD_PROVIDER` | Determines the cloud service backend logic. | `AZURE` (default) or `AWS` |
 | `AZURE_STORAGE_CONNECTION_STRING` | Connection string for Azure Storage. | `UseDevelopmentStorage=true` for local Azurite emulator. |
 | `AZURE_STORAGE_ACCOUNT_NAME` | The Azure storage account name. | Default is `devstoreaccount1` for Azurite. |
 | `AZURE_STORAGE_ACCOUNT_KEY` | The Azure storage account key. | Emulator key for Azurite, or production key. |
 | `AZURE_TABLE_NAME` | The Azure Table where upload requests are stored. | e.g., `UploadRequestsV2` |
 | `AZURE_SHARE_TABLE_NAME` | The Azure Table where download share records are stored. | `DownloadShares` |
 | `AZURE_BLOB_CONTAINER_NAME` | The blob container for uploaded files. | e.g., `uploads` |
+| `AWS_REGION` | AWS Region for DynamoDB and S3 (When CLOUD_PROVIDER=AWS). | e.g., `us-east-1` |
+| `AWS_S3_BUCKET_NAME` | The S3 Bucket for uploaded files. | e.g., `uploads-bucket` |
+| `AWS_DYNAMODB_TABLE_NAME` | The DynamoDB table for upload requests. | e.g., `UploadRequests` |
+| `AWS_DYNAMODB_SHARE_TABLE_NAME` | The DynamoDB table for download shares. | e.g., `DownloadShares` |
 | `AZURE_TABLE_URL` | Direct URL to Table Storage service. | Emulator URL (local) or cloud URL (prod). |
 | `AZURE_BLOB_URL` | Direct URL to Blob Storage service. | Emulator URL (local) or cloud URL (prod). |
 | `GCNOTIFY_API_KEY` | Your GCNotify API Key for emails. | `mock-api-key` for dev, or real key for prod. |
@@ -299,6 +310,24 @@ You can run a Docker container for Azurite via Ubuntu WSL:
    ```bash
    sudo docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite azurite --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
    ```
+
+### LocalStack (AWS Local Emulator)
+If you are deploying using the **AWS Multi-Cloud Architecture** (`CLOUD_PROVIDER=AWS`), you can mock AWS services locally (like Amazon S3 and DynamoDB) simulating the cloud environment without making actual requests to AWS. We will introduce `LocalStack` and `aws-sdk-mock`, two popular tools for mocking AWS services in local development environments.
+
+By default, the `backend/.env.example` comes pre-configured with mock keys and the LocalStack endpoint out-of-the-box for local testing:
+```env
+AWS_ENDPOINT_URL=http://localhost:4566
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+```
+
+To run LocalStack via Docker, perform the following in WSL or your preferred engine:
+1. Ensure your backend is set up for AWS mock routing (`CLOUD_PROVIDER=AWS`).
+2. Run the LocalStack container:
+   ```bash
+   docker run --rm -it -p 4566:4566 -p 4510-4559:4510-4559 localstack/localstack
+   ```
+When the container starts, the Secure Portal will seamlessly establish your mocked DynamoDB tables (`UploadRequests`) and S3 buckets, routing all signed upload flows entirely locally! If writing localized Jest-based integrations instead of container integration, you may utilize `aws-sdk-mock` paired with our service factories (`backend/services/storageService.ts`) to intercept S3/DDB calls gracefully.
 
 ### Running the Application
 1. **Backend**:
@@ -509,6 +538,8 @@ npm run dev
 
 **Steps to deploy CCCS Assemblyline 4 locally (WSL/Ubuntu):**
 To run the full suite, the official [CCCS Installation Guide](https://cybercentrecanada.github.io/assemblyline4_docs/installation/appliance/docker/) requires utilizing their composed deployment repository to guarantee appropriate service meshing. Run the following on your local Docker engine host (e.g., WSL terminal):
+
+> **Deploying offline?** For strict, air-gapped network deployments without internet access, utilize the scripts and playbook provided inside the `assemblyline4/` directory at the root of this repo. Refer to `assemblyline4/README.md` for explicit offline steps.
 
 1. **Configure Docker to use larger address pools:**
    ```bash

@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { initTable } from './services/azureTableService.js';
-import { initBlob } from './services/azureBlobService.js';
+import { dbService } from './services/dbService.js';
+import { storageService } from './services/storageService.js';
 import * as uploadController from './controllers/uploadController.js';
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
@@ -166,8 +166,8 @@ const port = process.env.PORT || 3001;
 (async () => {
     try {
         console.log('Initializing Azure services...');
-        await initTable();
-        await initBlob();
+        await dbService.initTable();
+        await storageService.initBlob();
         
         app.listen(port, () => {
             console.log(`Backend server running on port ${port}`);

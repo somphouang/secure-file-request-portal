@@ -6,6 +6,6 @@ import ImportMetaEnvPlugin from '@import-meta-env/unplugin'
 export default defineConfig({
   plugins: [
     vue(),
-    ImportMetaEnvPlugin.vite({ example: '.env' })
+    ImportMetaEnvPlugin.vite({ example: '.env-example' })
   ],
 })
