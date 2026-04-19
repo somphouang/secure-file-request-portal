@@ -38,7 +38,7 @@ export async function scanFile(requestorEmail: string, token: string, blobName: 
 
     // In a real implementation:
     try {
-        const fileUrl = storageService.generateDownloadSasToken(blobName);
+        const fileUrl = await storageService.generateDownloadSasToken(blobName);
         console.log(`[ASSEMBLYLINE] Submitting to Assemblyline4: ${assemblylineUrl}`);
         
         let req = await dbService.getUploadRequest(requestorEmail, token);
@@ -124,7 +124,7 @@ export async function scanShareFile(requestorEmail: string, token: string, blobN
 
     // In a real implementation:
     try {
-        const fileUrl = storageService.generateDownloadSasToken(blobName);
+        const fileUrl = await storageService.generateDownloadSasToken(blobName);
         console.log(`[ASSEMBLYLINE SHARE] Submitting to Assemblyline4: ${assemblylineUrl}`);
         
         await dbService.updateDownloadShare(requestorEmail, token, { status: 'Scanning' });

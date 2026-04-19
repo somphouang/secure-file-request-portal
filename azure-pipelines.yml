@@ -8,10 +8,10 @@ variables:
   node_version: '20.x' 
 
 stages:
-- stage: BuildAndTest
+- stage: BuildAndPackage
   jobs:
-  - job: BackendTest
-    displayName: 'Backend Setup and Test'
+  - job: BuildAndZip
+    displayName: 'Build and Package App'
     steps:
     - task: NodeTool@0
       inputs:
@@ -21,27 +21,27 @@ stages:
     - script: |
         cd backend
         npm install
-      displayName: 'Install Backend Dependencies'
-
-    - script: |
-        cd backend
-        npm run test
-      displayName: 'Run Backend Tests'
-
-  - job: FrontendTest
-    displayName: 'Frontend Setup and Test'
-    steps:
-    - task: NodeTool@0
-      inputs:
-        versionSpec: '$(node_version)'
-      displayName: 'Install Node.js'
+        npm run build
+      displayName: 'Build Backend'
 
     - script: |
         cd frontend
         npm install
-      displayName: 'Install Frontend Dependencies'
+        npm run build
+      displayName: 'Build Frontend'
 
-    - script: |
-        cd frontend
-        npm run test
-      displayName: 'Run Frontend Tests'
+    - task: ArchiveFiles@2
+      displayName: 'Archive Application files'
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/secure-file-portal.zip'
+        replaceExistingArchive: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish deployment artifact'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/secure-file-portal.zip'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'

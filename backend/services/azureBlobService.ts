@@ -49,7 +49,7 @@ export async function initBlob(): Promise<void> {
     }
 }
 
-export function generateUploadSasToken(blobName: string) {
+export async function generateUploadSasToken(blobName: string) {
     const startsOn = new Date();
     startsOn.setMinutes(startsOn.getMinutes() - 15); // Prevent clock skew
     const expiresOn = new Date();
@@ -73,7 +73,7 @@ export function generateUploadSasToken(blobName: string) {
     };
 }
 
-export function generateDownloadSasToken(blobName: string) {
+export async function generateDownloadSasToken(blobName: string) {
     const startsOn = new Date();
     startsOn.setMinutes(startsOn.getMinutes() - 15); // Prevent clock skew
     const expiresOn = new Date();

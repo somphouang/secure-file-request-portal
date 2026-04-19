@@ -157,7 +157,7 @@ export const generateUploadSas = async (req: Request, res: Response) => {
 
         const blobName = `${token}-${Date.now()}.${ext}`;
 
-        const sasInfo = storageService.generateUploadSasToken(blobName);
+        const sasInfo = await storageService.generateUploadSasToken(blobName);
         res.json(sasInfo);
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -288,7 +288,7 @@ export const uploadFileForSharing = async (req: Request, res: Response) => {
             jsonMetadata
         );
 
-        const sasInfo = storageService.generateUploadSasToken(blobName);
+        const sasInfo = await storageService.generateUploadSasToken(blobName);
         
         res.json({
             token,
@@ -435,7 +435,7 @@ export const generateShareDownloadSas = async (req: Request, res: Response) => {
 
         if (!share.blobUri) return res.status(404).json({ error: 'File not available' });
 
-        const sasUrl = storageService.generateDownloadSasToken(share.blobUri);
+        const sasUrl = await storageService.generateDownloadSasToken(share.blobUri);
         res.json({ url: sasUrl });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -604,7 +604,7 @@ export const markDownloadComplete = async (req: Request, res: Response) => {
         if (!isValid) return res.status(401).json({ error: 'Invalid secret' });
 
         // Update the request status to Downloaded
-        await azureTableService.updateRequestStatus(request.partitionKey!, token, {
+        await dbService.updateRequestStatus(request.partitionKey!, token, {
             status: 'Downloaded',
             downloadCompletedAt: new Date()
         });
@@ -624,7 +624,7 @@ export const markShareDownloadComplete = async (req: Request, res: Response) => 
             return res.status(400).json({ error: 'Secret required' });
         }
 
-        const share = await azureTableService.getDownloadShareByToken(token);
+        const share = await dbService.getDownloadShareByToken(token);
         if (!share) return res.status(404).json({ error: 'Not found or expired' });
 
         if (!share.downloadSecretHash) {
@@ -635,7 +635,7 @@ export const markShareDownloadComplete = async (req: Request, res: Response) => 
         if (!isValid) return res.status(401).json({ error: 'Invalid secret' });
 
         // Update the share status to Downloaded
-        await azureTableService.updateDownloadShare(share.partitionKey!, token, {
+        await dbService.updateDownloadShare(share.partitionKey!, token, {
             status: 'Downloaded',
             downloadCompletedAt: new Date()
         });
@@ -654,7 +654,7 @@ export const generateDownloadSasForDownloader = async (req: Request, res: Respon
 
         if (!secret) return res.status(400).json({ error: 'Secret required' });
 
-        const request = await azureTableService.getRequestByTokenOnly(token);
+        const request = await dbService.getRequestByTokenOnly(token);
         if (!request) return res.status(404).json({ error: 'Not found or expired' });
 
         if (!request.downloadSecretHash) {
@@ -683,7 +683,7 @@ export const generateDownloadSasForDownloader = async (req: Request, res: Respon
             return res.status(403).json({ error: 'Download not allowed for malicious files.' });
         }
 
-        const sasUrl = azureBlobService.generateDownloadSasToken(targetBlob);
+        const sasUrl = await storageService.generateDownloadSasToken(targetBlob);
         res.json({ url: sasUrl });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -697,7 +697,7 @@ export const generateDownloadSas = async (req: Request, res: Response) => {
         let requestorEmail = req.user?.preferred_username || (req.query.email as string) || 'admin@example.com';
         requestorEmail = requestorEmail.replace(/[\/\\#\?]/g, '_');
 
-        const request = await azureTableService.getUploadRequest(requestorEmail, token);
+        const request = await dbService.getUploadRequest(requestorEmail, token);
         
         if (!request) return res.status(404).json({ error: 'Not found or not authorized' });
         if (!request.blobUri) return res.status(404).json({ error: `No files uploaded.` });
@@ -719,7 +719,7 @@ export const generateDownloadSas = async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'Download allowed only for clean files.' });
         }
 
-        const sasUrl = azureBlobService.generateDownloadSasToken(targetBlob);
+        const sasUrl = await storageService.generateDownloadSasToken(targetBlob);
         res.json({ url: sasUrl });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -735,7 +735,7 @@ const canSend2fa = (lastSent?: Date | string): boolean => {
 export const sendUploader2fa = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
-        const request = await azureTableService.getRequestByTokenOnly(token);
+        const request = await dbService.getRequestByTokenOnly(token);
         
         if (!request || (request.expiresAt && new Date(request.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Upload request not found or expired.' });
@@ -748,7 +748,7 @@ export const sendUploader2fa = async (req: Request, res: Response) => {
         const newPasscode = generateUploaderSecret();
         const secretHash = await bcrypt.hash(newPasscode, 10);
 
-        await azureTableService.updateRequestStatus(request.partitionKey!, token, {
+        await dbService.updateRequestStatus(request.partitionKey!, token, {
             secretHash,
             last2faSentAt: new Date()
         });
@@ -769,7 +769,7 @@ export const sendUploader2fa = async (req: Request, res: Response) => {
 export const sendDownloader2fa = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
-        const request = await azureTableService.getRequestByTokenOnly(token);
+        const request = await dbService.getRequestByTokenOnly(token);
         
         if (!request || (request.expiresAt && new Date(request.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Upload request not found or expired.' });
@@ -786,7 +786,7 @@ export const sendDownloader2fa = async (req: Request, res: Response) => {
         const newPasscode = generatePasscode();
         const downloadSecretHash = await bcrypt.hash(newPasscode, 10);
 
-        await azureTableService.updateRequestStatus(request.partitionKey!, token, {
+        await dbService.updateRequestStatus(request.partitionKey!, token, {
             downloadSecretHash,
             last2faSentAt: new Date()
         });
@@ -807,7 +807,7 @@ export const sendDownloader2fa = async (req: Request, res: Response) => {
 export const sendShareDownloader2fa = async (req: Request, res: Response) => {
     try {
         const token = req.params.token as string;
-        const share = await azureTableService.getDownloadShareByToken(token);
+        const share = await dbService.getDownloadShareByToken(token);
         
         if (!share || (share.expiresAt && new Date(share.expiresAt) < new Date())) {
             return res.status(404).json({ error: 'Share not found or expired.' });
@@ -824,7 +824,7 @@ export const sendShareDownloader2fa = async (req: Request, res: Response) => {
         const newPasscode = generatePasscode();
         const downloadSecretHash = await bcrypt.hash(newPasscode, 10);
 
-        await azureTableService.updateDownloadShare(share.partitionKey!, token, {
+        await dbService.updateDownloadShare(share.partitionKey!, token, {
             downloadSecretHash,
             last2faSentAt: new Date()
         });
