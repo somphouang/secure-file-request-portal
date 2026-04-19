@@ -228,14 +228,18 @@ const handleUpload = async () => {
   status.value = 'uploading';
 
   try {
-    const sasRes = await axios.post<{ url: string, blobName: string }>(`${API_BASE}/requests/${token}/sas`, { filename: file.value.name, secret: secret.value });
-    const { url, blobName } = sasRes.data;
+    const sasRes = await axios.post<{ url: string, blobName: string, cloudProvider?: string }>(`${API_BASE}/requests/${token}/sas`, { filename: file.value.name, secret: secret.value });
+    const { url, blobName, cloudProvider } = sasRes.data;
+
+    const headers: Record<string, string> = {
+      'Content-Type': file.value.type || 'application/octet-stream'
+    };
+    if (cloudProvider !== 'AWS') {
+      headers['x-ms-blob-type'] = 'BlockBlob';
+    }
 
     await axios.put(url, file.value, {
-      headers: {
-        'x-ms-blob-type': 'BlockBlob',
-        'Content-Type': file.value.type || 'application/octet-stream'
-      }
+      headers
     });
 
     await axios.post(`${API_BASE}/requests/${token}/confirm`, { blobName });

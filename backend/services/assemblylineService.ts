@@ -1,5 +1,5 @@
-import { updateRequestStatus, getUploadRequest, getDownloadShare, updateDownloadShare } from './azureTableService.js';
-import { generateDownloadSasToken } from './azureBlobService.js';
+import { dbService } from './dbService.js';
+import { storageService } from './storageService.js';
 import axios from 'axios';
 
 const assemblylineUrl = process.env.ASSEMBLYLINE_URL || 'mock';
@@ -9,12 +9,12 @@ export async function scanFile(requestorEmail: string, token: string, blobName: 
     if (assemblylineUrl === 'mock') {
         console.log(`[ASSEMBLYLINE] Mock scanning started for ${blobName} (token: ${token})`);
         
-        let req = await getUploadRequest(requestorEmail, token);
+        let req = await dbService.getUploadRequest(requestorEmail, token);
         let statuses = req?.fileStatuses ? JSON.parse(req.fileStatuses) : {};
         statuses[blobName] = 'Scanning';
 
         // Update status to Scanning
-        await updateRequestStatus(requestorEmail, token, { status: 'Scanning', fileStatuses: JSON.stringify(statuses) });
+        await dbService.updateRequestStatus(requestorEmail, token, { status: 'Scanning', fileStatuses: JSON.stringify(statuses) });
 
         // Simulate scan delay (10 seconds)
         setTimeout(async () => {
@@ -22,7 +22,7 @@ export async function scanFile(requestorEmail: string, token: string, blobName: 
             const isClean = Math.random() > 0.1;
             const finalStatus = isClean ? 'Clean' : 'Malicious';
             
-            req = await getUploadRequest(requestorEmail, token);
+            req = await dbService.getUploadRequest(requestorEmail, token);
             statuses = req?.fileStatuses ? JSON.parse(req.fileStatuses) : {};
             statuses[blobName] = finalStatus;
 
@@ -30,7 +30,7 @@ export async function scanFile(requestorEmail: string, token: string, blobName: 
             const overallStatus = anyMalicious ? 'Malicious' : 'Clean';
             
             console.log(`[ASSEMBLYLINE] Mock scanning finished for ${blobName}. Result: ${finalStatus}`);
-            await updateRequestStatus(requestorEmail, token, { status: overallStatus, fileStatuses: JSON.stringify(statuses) });
+            await dbService.updateRequestStatus(requestorEmail, token, { status: overallStatus, fileStatuses: JSON.stringify(statuses) });
         }, 10000);
 
         return true;
@@ -38,13 +38,13 @@ export async function scanFile(requestorEmail: string, token: string, blobName: 
 
     // In a real implementation:
     try {
-        const fileUrl = generateDownloadSasToken(blobName);
+        const fileUrl = storageService.generateDownloadSasToken(blobName);
         console.log(`[ASSEMBLYLINE] Submitting to Assemblyline4: ${assemblylineUrl}`);
         
-        let req = await getUploadRequest(requestorEmail, token);
+        let req = await dbService.getUploadRequest(requestorEmail, token);
         let statuses = req?.fileStatuses ? JSON.parse(req.fileStatuses) : {};
         statuses[blobName] = 'Scanning';
-        await updateRequestStatus(requestorEmail, token, { status: 'Scanning', fileStatuses: JSON.stringify(statuses) });
+        await dbService.updateRequestStatus(requestorEmail, token, { status: 'Scanning', fileStatuses: JSON.stringify(statuses) });
 
         // Submit to Assemblyline V4 API using URL extraction
         const submitRes = await axios.post(`${assemblylineUrl}/api/v4/submit/`, {
@@ -80,14 +80,14 @@ export async function scanFile(requestorEmail: string, token: string, blobName: 
                     
                     console.log(`[ASSEMBLYLINE] Real scan finished for ${blobName}. Result: ${finalStatus}`);
                     
-                    req = await getUploadRequest(requestorEmail, token);
+                    req = await dbService.getUploadRequest(requestorEmail, token);
                     statuses = req?.fileStatuses ? JSON.parse(req.fileStatuses) : {};
                     statuses[blobName] = finalStatus;
 
                     const anyMalicious = Object.values(statuses).includes('Malicious');
                     const overallStatus = anyMalicious ? 'Malicious' : 'Clean';
                     
-                    await updateRequestStatus(requestorEmail, token, { status: overallStatus, fileStatuses: JSON.stringify(statuses) });
+                    await dbService.updateRequestStatus(requestorEmail, token, { status: overallStatus, fileStatuses: JSON.stringify(statuses) });
                 }
             } catch (err: any) {
                 if (err.response?.status !== 404) {
@@ -107,7 +107,7 @@ export async function scanShareFile(requestorEmail: string, token: string, blobN
     if (assemblylineUrl === 'mock') {
         console.log(`[ASSEMBLYLINE SHARE] Mock scanning started for ${blobName} (token: ${token})`);
         
-        await updateDownloadShare(requestorEmail, token, { status: 'Scanning' });
+        await dbService.updateDownloadShare(requestorEmail, token, { status: 'Scanning' });
 
         // Simulate scan delay (10 seconds)
         setTimeout(async () => {
@@ -116,7 +116,7 @@ export async function scanShareFile(requestorEmail: string, token: string, blobN
             const finalStatus = isClean ? 'Clean' : 'Malicious';
             
             console.log(`[ASSEMBLYLINE SHARE] Mock scanning finished for ${blobName}. Result: ${finalStatus}`);
-            await updateDownloadShare(requestorEmail, token, { status: finalStatus });
+            await dbService.updateDownloadShare(requestorEmail, token, { status: finalStatus });
         }, 10000);
 
         return true;
@@ -124,10 +124,10 @@ export async function scanShareFile(requestorEmail: string, token: string, blobN
 
     // In a real implementation:
     try {
-        const fileUrl = generateDownloadSasToken(blobName);
+        const fileUrl = storageService.generateDownloadSasToken(blobName);
         console.log(`[ASSEMBLYLINE SHARE] Submitting to Assemblyline4: ${assemblylineUrl}`);
         
-        await updateDownloadShare(requestorEmail, token, { status: 'Scanning' });
+        await dbService.updateDownloadShare(requestorEmail, token, { status: 'Scanning' });
 
         // Submit to Assemblyline V4 API
         const submitRes = await axios.post(`${assemblylineUrl}/api/v4/submit/`, {
@@ -162,7 +162,7 @@ export async function scanShareFile(requestorEmail: string, token: string, blobN
                     const finalStatus = isMalicious ? 'Malicious' : 'Clean';
                     
                     console.log(`[ASSEMBLYLINE SHARE] Real scan finished for ${blobName}. Result: ${finalStatus}`);
-                    await updateDownloadShare(requestorEmail, token, { status: finalStatus });
+                    await dbService.updateDownloadShare(requestorEmail, token, { status: finalStatus });
                 }
             } catch (err: any) {
                 if (err.response?.status !== 404) {

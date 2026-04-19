@@ -68,7 +68,8 @@ export function generateUploadSasToken(blobName: string) {
     return {
         url: `${containerClient.getBlockBlobClient(blobName).url}?${sasToken}`,
         sasToken,
-        blobName
+        blobName,
+        cloudProvider: 'AZURE'
     };
 }
 
